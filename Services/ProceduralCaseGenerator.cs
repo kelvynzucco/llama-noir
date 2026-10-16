@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using LlamaInterrogation.Models;
@@ -70,653 +70,13 @@ public static class ProceduralCaseGenerator
     private static readonly string[] HairStyles = { "curto", "longo", "calvo", "topete" };
     private static readonly string[] OutfitStyles = { "jaleco", "terno", "jaqueta", "uniforme", "vinho" };
 
-    /// <summary>
-    /// Pool de Casos Noir Artesanais e Detalhados
-    /// </summary>
-    public static readonly NoirCaseBlueprint[] BaseBlueprints =
-    {
-        // 1. Emboscada no Beco Blue Note
-        new()
-        {
-            Title = "Emboscada no Beco Blue Note",
-            Context = "O informante 'Rato' Soares foi morto com dois tiros às 02h00 no beco atrás do Clube de Jazz Blue Note.",
-            Objective = "Faça Vicente Moretti confessar quem atirou em Soares e onde escondeu o livro-caixa do sindicato.",
-            NpcName = "Vicente Moretti",
-            NpcRole = "Gerente Noturno • Clube de Jazz Blue Note",
-            NpcPersonality = "Irônico e vivido na noite, tenta manter a frieza, mas entra em pânico quando a segurança de sua irmã Lúcia é ameaçada.",
-            SecretTruth = "O mafioso Donato Braga ameaçou matar Lúcia (irmã de Vicente) para obrigá-lo a destrancar a porta dos fundos às 02h00. Donato Braga matou Rato Soares, e Vicente escondeu o livro-caixa dentro da caixa acústica do piano de cauda do clube.",
-            OpeningGmNarration = "A fumaça do cigarro sobe lenta sob a lâmpada fria da delegacia. Vicente Moretti ajeita o colarinho do terno risca-de-giz e encara você com um meio sorriso cansado.",
-            OpeningNpcDialogue = "\"Já falei tudo pros seus guardas na entrada, detetive. Fechei o Blue Note à meia-noite em ponto, passei o cadeado e fui pra minha cama. O que acontece naquele beco escuro depois que as luzes apagam não é conta minha.\"",
-            AlibiSpeech = "Eu sou apenas o gerente do Clube Blue Note há dez anos, detetive. Fechei o bar à meia-noite em ponto e fui direto para casa dormir.",
-            EmpathyEarlySpeech = "Agradeço o tom civilizado, detetive... a verdade é que o Rato Soares andava chantageando gente perigosa demais naquele clube, gente com quem ninguém quer cruzar.",
-            EarlyWhoWhereSpeech = "Você acha que se eu soubesse quem apagou o Rato Soares eu estaria vivo sentado aqui? Se eu abrir a boca sem garantias, não chego vivo até amanhã.",
-            WeakPointLabel = "sua irmã Lúcia",
-            WeakPointKeywords = new[] { "irmã", "irma", "lúcia", "lucia", "família", "familia", "proteger", "proteção", "protecao", "viatura" },
-            WeakPointReactionSpeech = "Deixe a minha irmã Lúcia fora disso, pelo amor de Deus! Se você colocar uma viatura na porta dela agora, eu falo: foi o chefão Donato Braga quem me obrigou a abrir a porta dos fundos às duas da manhã!",
-            ConfessionSpeech = "Tudo bem, eu confesso tudo! Donato Braga jurou matar minha irmã Lúcia se eu não destrancasse os fundos às duas da manhã. Foi o próprio Donato Braga quem deu os dois tiros no Rato Soares, e eu escondi o livro-caixa dentro do piano de cauda do clube!",
-            KeyAccompliceWord = "Donato Braga",
-            KeyConfessionWord = "piano",
-            HiddenObjectLabel = "o livro-caixa",
-            BonusClueTitle = "Ameaça de Donato Braga",
-            BonusClueDescription = "Moretti admitiu que o chefão Donato Braga coagiu sua irmã Lúcia para ter acesso ao beco às 02h00.",
-            BonusClueKeywords = new[] { "donato", "braga", "ameaça", "ameaca", "piano" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Isqueiro de Prata no Beco",
-                    Description = "O isqueiro de prata gravado de Moretti foi encontrado no chão ao lado do corpo de Soares.",
-                    Keywords = new[] { "isqueiro", "prata", "chão", "chao", "corpo" },
-                    ExcuseSpeech = "Esse isqueiro de prata era meu sim, mas sumiu do balcão do bar ontem à tarde! Qualquer freguês pode ter furtado de mim e deixado cair no beco.",
-                    AdmissionSpeech = "Está bem, o isqueiro caiu do meu bolso às duas da manhã! Eu estava lá no beco quando o Rato Soares morreu, mas não fui eu quem puxou o gatilho!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Carro Visto às 02h10",
-                    Description = "O saxofonista da banda viu o sedã preto de Moretti estacionado no beco às 02h10 da madrugada.",
-                    Keywords = new[] { "carro", "sedã", "seda", "saxofonista", "02h10", "duas e dez", "estacionado" },
-                    ExcuseSpeech = "A bateria do meu sedã arriou antes da meia-noite, detetive. Deixei o carro trancado lá no beco e voltei para casa de táxi.",
-                    AdmissionSpeech = "O saxofonista falou a verdade... meu carro estava lá às duas e dez porque me forçaram a ficar no clube esperando o serviço sujo terminar!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Envelope com 20 Mil Dólares",
-                    Description = "A perícia achou 20 mil dólares em notas novas dentro da gaveta trancada do escritório de Moretti.",
-                    Keywords = new[] { "envelope", "20 mil", "vinte mil", "dólares", "dolares", "dinheiro", "gaveta", "escritório" },
-                    ExcuseSpeech = "Esses vinte mil dólares no envelope são apenas o faturamento das bebidas da semana no Blue Note, ainda não tive tempo de depositar no banco.",
-                    AdmissionSpeech = "Aquele envelope de vinte mil dólares foi deixado na minha mesa pelo capanga de Donato Braga para comprar o meu silêncio sobre o livro-caixa!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Sapato com Barro do Beco",
-                    Description = "O calçado italiano de Moretti continha terra fresca e fuligem idênticas às marcas achadas junto ao cadáver de Soares.",
-                    Keywords = new[] { "sapato", "calçado", "calcado", "barro", "lama", "beco", "pegadas", "fuligem" },
-                    ExcuseSpeech = "Pisei naquela poça de barro quando saí para conferir as lixeiras antes de fechar o bar à meia-noite.",
-                    AdmissionSpeech = "Eu voltei ao beco às duas da manhã sim! As marcas de barro são minhas... Donato me forçou a conferir se o serviço estava feito!"
-                }
-            }
-        },
-
-        // 2. Queima de Arquivo no Cais 14
-        new()
-        {
-            Title = "Queima de Arquivo no Cais 14",
-            Context = "O despachante aduaneiro Artur Prado foi achado morto no Cais 14 e os manifestos de contrabando sumiram.",
-            Objective = "Faça Dr. Heitor Vasconcelos confessar quem ordenou a morte no cais e onde escondeu os manifestos originais.",
-            NpcName = "Dr. Heitor Vasconcelos",
-            NpcRole = "Advogado do Sindicato Portuário • Cais 14",
-            NpcPersonality = "Intelectual, formal e arrogante, mas desmorona quando confrontado sobre o tratamento médico de sua filha Clara.",
-            SecretTruth = "O armador corrupto Marcus Vane pagou 50 mil dólares pelo sanatório de Clara (filha de Heitor) para que Heitor atraísse Artur Prado ao Cais 14 às 02h15. Os capangas de Vane mataram Prado, e Heitor escondeu os manifestos originais no cofre da Capela São Jorge.",
-            OpeningGmNarration = "Dr. Heitor Vasconcelos limpa os óculos com um lenço de seda na sala fria da delegacia, mantendo as mãos cruzadas sobre a mesa metálica com calculada superioridade jurídica.",
-            OpeningNpcDialogue = "\"Olhe para o relógio, detetive. Eu saí do escritório portuário às nove da noite. Se o infeliz do Artur Prado apareceu boiando no Cais 14 de madrugada, sugiro procurar entre os estivadores e não na minha banca de advocacia.\"",
-            AlibiSpeech = "Eu sou o consultor jurídico do Sindicato Portuário, detetive. Encerrei meu expediente às 21h e passei a madrugada inteira em casa revisando contratos.",
-            EmpathyEarlySpeech = "Poucos policiais nesta cidade conversam sem gritar, detetive. Artur Prado descobriu desvios pesados demais no porto... eu tentei avisá-lo para não mexer naquele vespeiro.",
-            EarlyWhoWhereSpeech = "Os homens que controlam o Cais 14 compram juízes e delegados no atacado. Se eu disser um único nome aqui sem garantia de vida, minha família paga o preço.",
-            WeakPointLabel = "sua filha Clara no sanatório",
-            WeakPointKeywords = new[] { "filha", "clara", "sanatório", "sanatorio", "hospital", "clínica", "clinica", "tratamento", "médico", "medico" },
-            WeakPointReactionSpeech = "A minha filha Clara depende daquele tratamento pulmonar para viver! Eu não tinha cinquenta mil dólares... foi o armador Marcus Vane quem pagou o sanatório em troca da chave do Cais 14!",
-            ConfessionSpeech = "Eu confesso, detetive! Marcus Vane pagou a cirurgia da minha filha Clara e me obrigou a chamar Artur Prado ao Cais 14 às duas e quinze. Foram os homens de Marcus Vane que mataram o Prado, e eu escondi os manifestos originais no cofre da Capela São Jorge!",
-            KeyAccompliceWord = "Marcus Vane",
-            KeyConfessionWord = "Capela São Jorge",
-            HiddenObjectLabel = "os manifestos originais",
-            BonusClueTitle = "Suborno de Marcus Vane",
-            BonusClueDescription = "Heitor admitiu que o armador Marcus Vane quitou a dívida médica de Clara para atrair Artur Prado ao cais.",
-            BonusClueKeywords = new[] { "marcus", "vane", "armador", "capela", "são jorge" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Placa Anotada às 02h15",
-                    Description = "O vigia noturno anotou a placa do automóvel do Dr. Heitor saindo do Cais 14 às 02h15 da madrugada.",
-                    Keywords = new[] { "placa", "vigia", "02h15", "duas e quinze", "automóvel", "automovel", "carro", "saindo" },
-                    ExcuseSpeech = "Aquele vigia do porto vive bêbado de gim, detetive! Meu automóvel ficou na garagem a noite toda, ele deve ter confundido a placa na neblina.",
-                    AdmissionSpeech = "Maldito vigia... sim, era o meu carro saindo do Cais 14 às duas e quinze! Eu estava lá quando emboscaram o Artur Prado, mas fui coagido!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Cinzas de Cópias Falsas",
-                    Description = "Na lareira do escritório de Heitor foram achadas folhas queimadas, mas a perícia provou serem apenas cópias sem valor.",
-                    Keywords = new[] { "cinzas", "lareira", "cópias", "copias", "queimadas", "fogo", "papel" },
-                    ExcuseSpeech = "Queimei apenas rascunhos velhos de processos arquivados na lareira do meu escritório, é uma prática perfeitamente legal.",
-                    AdmissionSpeech = "Eu queimei cópias falsas na lareira para enganar os capangas! Guardei os manifestos originais em outro lugar como seguro de vida!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Recibo de 50 Mil no Sanatório",
-                    Description = "O Sanatório Santa Helena recebeu 50 mil dólares em espécie ontem para quitar a internação de Clara Vasconcelos.",
-                    Keywords = new[] { "recibo", "50 mil", "cinquenta mil", "sanatório", "sanatorio", "internação", "internacao", "espécie" },
-                    ExcuseSpeech = "Quitei as despesas médicas da minha filha Clara com economias pessoais que eu guardava em casa há anos, não devo satisfação ao fisco aqui.",
-                    AdmissionSpeech = "Eu jamais teria cinquenta mil dólares em espécie! Foi o próprio Marcus Vane quem mandou entregar essa mala de dinheiro no sanatório da minha filha!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Cópia da Chave do Portão Sul",
-                    Description = "Uma cópia recém-feita da chave do portão de serviço do Cais 14 foi encontrada no chaveiro particular de Heitor.",
-                    Keywords = new[] { "chave", "portão", "portao", "sul", "serviço", "servico", "cais", "cadeado" },
-                    ExcuseSpeech = "Como consultor jurídico do sindicato, tenho chave de todas as docas para vistorias legais.",
-                    AdmissionSpeech = "Fui eu quem destrancou o portão sul para os capangas de Vane entrarem no cais sem serem vistos pelas câmeras da guarita!"
-                }
-            }
-        },
-
-        // 3. Veneno na Adega Saint-Germain
-        new()
-        {
-            Title = "Veneno na Adega Saint-Germain",
-            Context = "O crítico enólogo Pierre Dupont foi envenenado com cianeto após degustar uma garrafa rara na adega subterrânea.",
-            Objective = "Faça a sommelier Helena Santos confessar quem encomendou o veneno e onde está a garrafa com o cianeto residual.",
-            NpcName = "Helena Santos",
-            NpcRole = "Sommelier-Chefe • Adega Saint-Germain",
-            NpcPersonality = "Refinada, fria e atenta a detalhes, tenta se esquivar usando conhecimento técnico, mas teme a ruína da vinícola de sua família.",
-            SecretTruth = "O conde rival chantageou Helena com notas promissórias falsas para adulterar o vinho de Dupont. Ela escondeu o frasco de cianeto e o saca-rolhas envenenado sob o tonel número 4 da adega subterrânea.",
-            OpeningGmNarration = "Helena Santos recosta-se na cadeira com postura impecável, os braços cruzados sobre o casaco de lã. O cheiro sutil de vinho envelhecido e amêndoas amargas ainda a acompanha.",
-            OpeningNpcDialogue = "\"Pierre Dupont tinha dezenas de desafetos entre os produtores que ele arruinou com suas críticas venenosas, detetive. Minha adega serve duzentos clientes por noite. Não sou responsável pelo que colocaram na taça dele.\"",
-            AlibiSpeech = "Eu estive supervisionando o serviço do salão principal durante todo o jantar. Apenas os garçons de praça desceram à adega durante a degustação.",
-            EmpathyEarlySpeech = "Dupont era um homem impiedoso que destruía famílias inteiras com uma canetada... muitos aqui respiraram aliviados quando ele caiu.",
-            EarlyWhoWhereSpeech = "Quem encomendou a morte de Dupont é alguém com títulos e dinheiro suficiente para comprar qualquer adega deste país. Se eu disser o nome, minha família é apagada.",
-            WeakPointLabel = "sua dívida de morte no Cassino Riviera",
-            WeakPointKeywords = new[] { "cassino", "riviera", "dívida", "divida", "promissória", "promissoria", "agiotas", "vinícola", "vinicola" },
-            WeakPointReactionSpeech = "Eles iam queimar a vinícola que meu avô construiu com as próprias mãos! Eu devia trezentos mil no Riviera... o Conde prometeu rasgar as promissórias se Dupont não saísse vivo daquela mesa!",
-            ConfessionSpeech = "Fui eu quem pegou a chave da adega privativa, detetive! O Conde me forçou a pingar o veneno na taça de Bordeaux do Dupont. O frasco de cianeto e o conta-gotas ainda estão escondidos sob o tonel número 4 da adega!",
-            KeyAccompliceWord = "Conde Saint-Germain",
-            KeyConfessionWord = "tonel número 4",
-            HiddenObjectLabel = "o frasco de cianeto",
-            BonusClueTitle = "Notas do Cassino Riviera",
-            BonusClueDescription = "Helena admitiu que dívidas de jogo com o Conde Saint-Germain a forçaram a envenenar a taça de Dupont.",
-            BonusClueKeywords = new[] { "conde", "riviera", "tonel", "cianeto", "bordeaux" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Frasco de Amêndoas Amargas",
-                    Description = "No cesto de panos da sommelier foi encontrado um frasco vazio com odor característico de cianeto de potássio.",
-                    Keywords = new[] { "frasco", "amêndoas", "amendoas", "cianeto", "veneno", "pano" },
-                    ExcuseSpeech = "Aquele frasquinho no cesto era apenas essência culinária concentrada que o chef de confeitaria me pediu para descartar.",
-                    AdmissionSpeech = "Sim... era o cianeto! Eu tentei lavar o frasco com vinagre e joguei nos panos velhos para que ninguém encontrasse!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Chave Privativa da Adega",
-                    Description = "A chave mestra com acesso aos tonéis de guarda numerados estava no bolso do avental de Helena.",
-                    Keywords = new[] { "chave", "mestra", "adega", "tonel", "avental", "privativa" },
-                    ExcuseSpeech = "Como sommelier-chefe, carrego as chaves da adega no bolso o tempo todo. Isso é parte da minha rotina diária e não uma prova de crime.",
-                    AdmissionSpeech = "Fui eu quem destrancou a adega às dez e meia... o homem do Conde me entregou a substância lá dentro na penumbra!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Taça de Bordeaux Adulterada",
-                    Description = "A análise química da taça reservada revelou concentração letal de veneno colocada antes da abertura do rótulo.",
-                    Keywords = new[] { "taça", "taca", "bordeaux", "veneno", "química", "adulterada", "vinho" },
-                    ExcuseSpeech = "Dupont exigiu abrir a própria garrafa na mesa, qualquer pessoa que passou perto do aparador dele poderia ter tocado naquela taça.",
-                    AdmissionSpeech = "Fui eu quem passou o veneno na borda interna da taça antes de levá-la ao Dupont... eu não tive escolha!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Conta-gotas com Traços Químicos",
-                    Description = "Um conta-gotas de vidro com resíduos de ácido cianídrico foi localizado escondido atrás da prateleira de licores.",
-                    Keywords = new[] { "conta-gotas", "vidro", "ácido", "cianídrico", "resíduos", "licores", "químico" },
-                    ExcuseSpeech = "Usamos conta-gotas para dosar essências de carvalho em vinhos de teste, qualquer enólogo faz isso.",
-                    AdmissionSpeech = "O conta-gotas era meu sim! Usei para pingar exatamente quatro gotas no fundo da taça sem deixar espumar!"
-                }
-            }
-        },
-
-        // 4. A Cilada no Museu Imperial (SUSPEITO INOCENTE / BODE EXPIATÓRIO)
-        new()
-        {
-            Title = "A Cilada no Museu Imperial",
-            Context = "Durante o blecaute no Baile de Gala, o valioso colar Rossi desapareceu. Dario Fontana foi encontrado caído no subsolo com as chaves mestras e ferramentas ao lado da vitrine quebrada.",
-            Objective = "Comprove a inocência de Dario Fontana, desfaça a armação forjada pelo Curador Lorenzo Vitti e recupere a joia.",
-            NpcName = "Dario Fontana",
-            NpcRole = "Guarda Noturno • Museu Imperial",
-            NpcPersonality = "Veterano humilde, honesto e apavorado por ver sua honra destruída e sua neta Laurinha desamparada.",
-            IsGuilty = false,
-            SecretTruth = "Dario Fontana é totalmente inocente. O curador corrupto Lorenzo Vitti forjou o roubo para receber dois milhões da seguradora. Vitti bateu na cabeça de Dario no escuro, plantou as ferramentas dele na vitrine e escondeu o colar Rossi dentro da estátua de mármore do salão norte.",
-            OpeningGmNarration = "Dario Fontana treme visivelmente sobre a mesa de interrogatório. Seus olhos marejados encaram você com desespero genuíno e mãos machucadas.",
-            OpeningNpcDialogue = "\"Eu trabalho há vinte anos como guarda noturno sem nunca ter levado uma advertência, detetive! Quando as luzes apagaram, alguém me golpeou por trás no porão! Quando acordei, já estavam me acusando de ladrão!\"",
-            AlibiSpeech = "Eu estava fazendo minha ronda normal quando o disjuntor estourou às 23h40. Desci para checar a chave geral e levei uma pancada violenta na nuca no escuro!",
-            EmpathyEarlySpeech = "Obrigado por me ouvir sem gritar comigo, detetive... a diretoria do museu estava à beira da falência e Lorenzo Vitti vivia dizendo que um seguro milionário salvaria tudo.",
-            EarlyWhoWhereSpeech = "Lorenzo Vitti ficou no museu até tarde trancado na sala da curadoria... ele é a única pessoa com chave cópia do meu armário de ferramentas!",
-            WeakPointLabel = "sua neta doente Laurinha",
-            WeakPointKeywords = new[] { "neta", "laurinha", "laura", "família", "menina", "salvar", "remédios", "proteção" },
-            WeakPointReactionSpeech = "Pela vida da minha netinha Laurinha, eu conto tudo o que vi! Pouco antes da luz apagar, vi Lorenzo Vitti saindo da curadoria com uma sacola preta de veludo!",
-            ConfessionSpeech = "Lorenzo Vitti armou tudo para fraudar o seguro! Ele escondeu o colar Rossi dentro do pedestal oco da estátua de mármore do salão norte antes de me golpear!",
-            ExonerationSpeech = "A justiça divina existe! Muito obrigado por acreditar na verdade, detetive! O verdadeiro criminoso é Lorenzo Vitti e o colar Rossi está na estátua de mármore!",
-            KeyAccompliceWord = "Lorenzo Vitti",
-            KeyConfessionWord = "estátua de mármore",
-            HiddenObjectLabel = "o colar de diamantes Rossi",
-            BonusClueTitle = "Armação de Lorenzo Vitti",
-            BonusClueDescription = "Dario revelou que Lorenzo Vitti forjou o apagão e plantou as ferramentas para incriminá-lo perante a polícia.",
-            BonusClueKeywords = new[] { "lorenzo", "vitti", "armação", "estátua", "estatua", "mármore", "seguro" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Luva de Couro no Disjuntor",
-                    Description = "Uma luva de trabalho com o nome de Dario foi encontrada presa na alavanca do disjuntor do subsolo.",
-                    Keywords = new[] { "luva", "graxa", "disjuntor", "alavanca", "subsolo", "luz", "blecaute" },
-                    ExcuseSpeech = "Vitti pegou meu par de luvas emprestado ontem à tarde dizendo que precisava consertar uma torneira na curadoria!",
-                    AdmissionSpeech = "Vitti usou minhas luvas deliberadamente para deixar marcas de propósito no painel elétrico e jogar a culpa em mim!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Ferimento na Nuca do Suspeito",
-                    Description = "Dario apresenta um corte com hematoma na parte posterior da cabeça compatível com coronhada.",
-                    Keywords = new[] { "ferimento", "corte", "nuca", "cabeça", "coronhada", "médico", "hematoma" },
-                    ExcuseSpeech = "Eu caí desacordado no concreto com o golpe de ferro! Como eu poderia ter quebrado a vitrine no salão de cima se estava desmaiado no porão?!",
-                    AdmissionSpeech = "Foi o capanga alto de Lorenzo Vitti que me acertou por trás quando eu alcancei a lanterna no escuro!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Ordem de Serviço Manuscrita",
-                    Description = "No bolso de Dario havia uma folha de papel mandando o guarda descer ao subsolo às 23h35.",
-                    Keywords = new[] { "ordem", "serviço", "manuscrita", "papel", "vitti", "bilhete" },
-                    ExcuseSpeech = "Aquele bilhete foi deixado na minha guarita com a assinatura do próprio curador Lorenzo Vitti!",
-                    AdmissionSpeech = "Essa ordem de serviço prova que Vitti me mandou para a emboscada no porão minutos antes do alarme tocar!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Marcas de Alavanca na Vitrine",
-                    Description = "A vitrine foi forçada com pé-de-cabra profissional pesado, incompatível com a chave de fenda de Dario.",
-                    Keywords = new[] { "marcas", "alavanca", "vitrine", "pé-de-cabra", "ferramentas", "curadoria" },
-                    ExcuseSpeech = "Minha caixa só tem chaves de fenda pequenas para fiação! A vitrine foi rebentada com ferro pesado da curadoria!",
-                    AdmissionSpeech = "O pé-de-cabra pertencia à oficina de restauro de Lorenzo Vitti! Ele mesmo arrombou a vitrine antes de me golpear!"
-                }
-            }
-        },
-
-        // 5. Dívida de Sangue no Hipódromo
-        new()
-        {
-            Title = "Dívida de Sangue no Hipódromo",
-            Context = "O jóquei campeão Rubens 'Relâmpago' Dias foi achado morto nos estábulos após vencer o Grande Prêmio contra as ordens da máfia.",
-            Objective = "Faça o treinador César Galvão confessar quem ordenou a execução nos estábulos e onde está a seringa usada para dopar os cavalos.",
-            NpcName = "César Galvão",
-            NpcRole = "Treinador-Chefe • Hipódromo Cidade Baixa",
-            NpcPersonality = "Rude, supersticioso e orgulhoso de seus cavalos, mas aterrorizado de perder a licença e deixar sua esposa Marta na miséria.",
-            SecretTruth = "O banqueiro do jogo do bicho, Otávio 'Barão' Mendes, apostou 200 mil na derrota de Rubens. Quando Rubens venceu, Mendes foi aos estábulos à meia-noite e o matou; César foi forçado a limpar a cena e escondeu a seringa de veneno e os tíquetes de aposta dentro da sela de couro nº 7.",
-            OpeningGmNarration = "O cheiro de feno úmido e tabaco barato acompanha César Galvão na cadeira de ferro. Ele gira o chapéu amassado entre os dedos calejados, evitando encarar a lâmpada.",
-            OpeningNpcDialogue = "\"O garoto Rubens era como um filho pra mim naquela pista, detetive. Quando voltei pros estábulos depois da meia-noite pra dar água ao cavalo, já encontrei o rapaz caído na palha. Deve ter sido algum apostador bêbado.\"",
-            AlibiSpeech = "Eu estava comemorando a vitória do Grande Prêmio no bar dos proprietários até a meia-noite. Quando desci às baias, o Rubens já estava sem vida.",
-            EmpathyEarlySpeech = "Ninguém vence uma corrida marcada na Cidade Baixa e sai impune, detetive. Eu implorei pro Rubens segurar as rédeas na reta final, mas o garoto tinha orgulho demais.",
-            EarlyWhoWhereSpeech = "Os homens que mandam nas bancas de apostas são donos de metade desta rua. Se eu apontar o dedo para o Barão sem proteção, incendeiam minha casa com minha mulher dentro.",
-            WeakPointLabel = "sua esposa Marta e sua casa",
-            WeakPointKeywords = new[] { "esposa", "mulher", "marta", "casa", "licença", "licenca", "proteção", "proteger", "acordo" },
-            WeakPointReactionSpeech = "Minha esposa Marta tem o coração fraco, ela não aguentaria se os capangas do Barão queimarem nossa casa! Se você me der garantia, eu conto: foi o banqueiro Otávio 'Barão' Mendes quem matou o Rubens nas baias!",
-            ConfessionSpeech = "Eu conto a verdade, detetive! O banqueiro Otávio 'Barão' Mendes perdeu duzentos mil dólares quando o Rubens se recusou a entregar a corrida. À meia-noite o Barão Mendes invadiu o estábulo, matou o garoto e me obrigou a esconder a seringa de dopagem e os comprovantes dentro do forro da sela de couro número 7!",
-            KeyAccompliceWord = "Barão Mendes",
-            KeyConfessionWord = "sela de couro",
-            HiddenObjectLabel = "a seringa e os comprovantes",
-            BonusClueTitle = "Aposta de 200 Mil do Barão",
-            BonusClueDescription = "César admitiu que Otávio 'Barão' Mendes ordenou a derrota do cavalo nº 7 e foi cobrar Rubens pessoalmente.",
-            BonusClueKeywords = new[] { "barão", "barao", "otávio", "otavio", "mendes", "sela", "seringa" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Espora Suja de Sangue",
-                    Description = "No balde de limpeza do galpão de César foi encontrada uma bota lavada às pressas com vestígios de sangue da vítima.",
-                    Keywords = new[] { "espora", "bota", "sangue", "balde", "limpeza", "galpão" },
-                    ExcuseSpeech = "Aquele sangue no balde era de um cavalo baio que machucou a canela na ferradura durante o treino da tarde, detetive.",
-                    AdmissionSpeech = "O sangue na minha bota era do Rubens sim! Eu tentei socorrer o garoto no chão do estábulo logo depois que bateram nele!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Bilhete de Aposta Rasgado",
-                    Description = "No bolso do colete de César havia um canhoto de aposta clandestina de 30 mil dólares contra o próprio cavalo vencedor.",
-                    Keywords = new[] { "bilhete", "aposta", "canhoto", "30 mil", "trinta mil", "colete", "contra" },
-                    ExcuseSpeech = "Achei esse canhoto de aposta jogado no chão da arquibancada, nunca apostaria contra o meu próprio cavalo campeão.",
-                    AdmissionSpeech = "Eu apostei contra o nosso cavalo porque a corrida estava comprada! O Rubens tinha prometido perder, mas mudou de ideia na última curva!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Frasco de Sedativo Equino",
-                    Description = "O armário veterinário de César estava destrancado e faltava uma ampola de sedativo cardíaco de alta dosagem.",
-                    Keywords = new[] { "frasco", "sedativo", "ampola", "veterinário", "veterinario", "armário", "cavalo", "veneno" },
-                    ExcuseSpeech = "Aquela ampola de sedativo quebrou sozinha na prateleira semana passada durante o transporte das caixas.",
-                    AdmissionSpeech = "Entreguei aquela ampola antes da largada para desacelerar o cavalo, mas o Rubens não aplicou... e usaram a seringa contra o próprio garoto!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Ferradura Adulterada com Chumbo",
-                    Description = "Uma ferradura modificada para desequilibrar o cavalo campeão foi achada escondida sob a palha da baia.",
-                    Keywords = new[] { "ferradura", "chumbo", "adulterada", "cavalo", "baia", "peso", "palha", "estábulo" },
-                    ExcuseSpeech = "Aquela ferradura velha foi descartada pelo ferrador na semana passada por estar torta.",
-                    AdmissionSpeech = "Fui eu quem colocou o chumbo na ferradura a mando do Barão, mas o Rubens percebeu e trocou antes da largada!"
-                }
-            }
-        },
-
-        // 6. A Queda do Maestro no Teatro Municipal
-        new()
-        {
-            Title = "A Queda do Maestro no Teatro Municipal",
-            Context = "O primeiro-violinista Enrico Bianco despencou no fosso da orquestra após o rompimento intencional do cabo do mezanino às 01h30.",
-            Objective = "Faça o maestro Arthur Montenegro confessar quem cortou os cabos e onde escondeu a tesoura cirúrgica e as partituras chantagistas.",
-            NpcName = "Arthur Montenegro",
-            NpcRole = "Maestro Titular • Orquestra Sinfônica Municipal",
-            NpcPersonality = "Arrogante, perfeccionista e elitista, mas apavorado de perder a tutela de sua filha doente Cecília.",
-            SecretTruth = "A soprano rival Bianca Morena chantageou Arthur para sabotar o palco de Enrico. Arthur usou uma tesoura cirúrgica e escondeu as cartas de chantagem e a tesoura dentro da caixa do violoncelo nº 3 no fosso da orquestra.",
-            OpeningGmNarration = "Arthur Montenegro tamborila os dedos longos na mesa de metal com desprezo visível, o lenço de bolso de seda ainda alinhado no paletó de veludo escuro.",
-            OpeningNpcDialogue = "\"Enrico Bianco era um instrumentista medíocre que cambaleava bêbado após cada récita. Se aquele cabo de aço cedeu no mezanino, a culpa é da manutenção precária deste teatro decrépito, não da minha batuta.\"",
-            AlibiSpeech = "Eu permaneci no camarote da diretoria revisando a partitura do segundo ato até a uma e meia da manhã, como os porteiros bem sabem.",
-            EmpathyEarlySpeech = "O mundo da ópera é uma cova de serpentes, detetive... você não imagina as pressões que recaem sobre a cabeça de quem comanda esta casa.",
-            EarlyWhoWhereSpeech = "A mulher por trás daquela sabotagem tem metade dos juízes desta cidade jantando em sua mesa aos domingos. Se eu abrir a boca, minha filha é arrancada de mim.",
-            WeakPointLabel = "sua filha Cecília no leito",
-            WeakPointKeywords = new[] { "filha", "cecília", "cecilia", "tutela", "doente", "leito", "família", "proteção" },
-            WeakPointReactionSpeech = "Não encoste na minha Cecília! Ela depende dos meus cuidados diários... foi a soprano Bianca Morena quem me chantageou com dívidas para cortar a sustentação do mezanino!",
-            ConfessionSpeech = "Chega desse tormento! A soprano Bianca Morena jurou me tirar a tutela de Cecília se eu não calasse Enrico Bianco. Fui eu quem afrouxou o cabo às pressas, e escondi a tesoura e as cartas de chantagem dentro da caixa do violoncelo número 3 no fosso!",
-            KeyAccompliceWord = "Bianca Morena",
-            KeyConfessionWord = "violoncelo número 3",
-            HiddenObjectLabel = "a tesoura cirúrgica e as cartas",
-            BonusClueTitle = "Chantagem de Bianca Morena",
-            BonusClueDescription = "Montenegro admitiu que a soprano Bianca Morena o forçou a cortar a sustentação do mezanino para assumir os solos.",
-            BonusClueKeywords = new[] { "bianca", "morena", "soprano", "violoncelo", "partitura" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Fita de Resina Cortada",
-                    Description = "No mezanino foi encontrada fita de sustentação cortada em bisel por lâmina cirúrgica de alta precisão.",
-                    Keywords = new[] { "fita", "resina", "corte", "bisel", "lâmina", "cirúrgica", "cabo" },
-                    ExcuseSpeech = "Aquele cabo foi desgastado pela ferrugem do ar úmido dos bastidores, qualquer perito incompetente sabe disso.",
-                    AdmissionSpeech = "O corte em bisel foi feito por mim sim... cortei três quartos das fibras para que o cabo se rompesse quando ele pisasse!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Luvas de Seda com Óleo Mineral",
-                    Description = "As luvas brancas de Arthur continham vestígios de graxa mineral usada exclusivamente nas roldanas do teto.",
-                    Keywords = new[] { "luva", "luvas", "seda", "óleo", "oleo", "graxa", "roldana" },
-                    ExcuseSpeech = "Toquei no corrimão da escada de serviço quando subi para verificar a iluminação cênica antes do ensaio geral.",
-                    AdmissionSpeech = "Subi até as roldanas sim! Usei as luvas para não deixar digitais quando sabotei o guincho do mezanino!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Partitura Rasgada com Ameaça",
-                    Description = "Na pasta de couro do maestro havia uma folha pautada de Enrico com a inscrição 'Você pagará por cada nota roubada'.",
-                    Keywords = new[] { "partitura", "ameaça", "rasgada", "enrico", "pasta", "música" },
-                    ExcuseSpeech = "Enrico vivia me acusando de plágio em delírios etílicos; guardei o bilhete para abrir um processo disciplinar na diretoria.",
-                    AdmissionSpeech = "Enrico tinha descoberto que registrei os arranjos dele no meu nome... ele ia me desmascarar na frente de toda a imprensa esta manhã!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Alicate Cirúrgico no Camarote",
-                    Description = "Um alicate cirúrgico de aço com marcas de pressão e dentes afiados foi localizado na lixeira privativa do maestro.",
-                    Keywords = new[] { "alicate", "cirúrgico", "cirurgico", "camarote", "aço", "cabo", "dentes" },
-                    ExcuseSpeech = "Uso aquela ferramenta para afinar as cravelhas emperradas dos instrumentos de corda da orquestra.",
-                    AdmissionSpeech = "Fui eu quem usou aquele alicate para romper os fios de sustentação antes do início do espetáculo!"
-                }
-            }
-        },
-
-        // 7. A Emboscada na Alfaiataria Camargo (SUSPEITO INOCENTE / INCULPADO)
-        new()
-        {
-            Title = "A Emboscada na Alfaiataria Camargo",
-            Context = "O agiota Miro Peçanha foi executado dentro do provador da Alfaiataria Camargo. O idoso alfaiate Raul foi detido com o revólver ensanguentado escondido em sua loja.",
-            Objective = "Comprove a inocência de Raul Camargo, desmascare a farsa montada pelo Delegado Peixoto e encontre a prova que inocenta o alfaiate.",
-            NpcName = "Raul Camargo",
-            NpcRole = "Mestre Alfaiate • Baixa Cidade",
-            NpcPersonality = "Senhor pacato, piedoso e aterrorizado por ver seu irmão caçula Tiago e sua oficina de uma vida inteira destruídos.",
-            IsGuilty = false,
-            SecretTruth = "Raul Camargo é completamente inocente. O Delegado corrupto Peixoto devia cem mil ao agiota Miro. Peixoto entrou na alfaiataria enquanto Raul foi à esquina, atirou em Miro e enfiou o revólver no forro do manequim nº 4 para incriminar o velho alfaiate.",
-            OpeningGmNarration = "Raul Camargo mantém a fita métrica pendurada no pescoço sobre o jaleco gasto. Suas mãos trêmulas de idoso tremem sem parar diante da acusação terrível.",
-            OpeningNpcDialogue = "\"Eu costuro ternos nesta praça há quarenta anos e nunca matei uma formiga, detetive! Quando voltei da mercearia da esquina com linhas novas, a polícia já estava na minha porta arrombando tudo!\"",
-            AlibiSpeech = "Eu saí para comprar linhas de seda na armarinho da Rua Direita por volta das duas da tarde; tenho até a nota de compra no bolso!",
-            EmpathyEarlySpeech = "Graças a Deus o senhor é um homem sensato... o Delegado Peixoto me odeia porque me recusei a costurar distintivos falsos para a quadrilha dele no mês passado.",
-            EarlyWhoWhereSpeech = "O verdadeiro criminoso usa distintivo dourado na lapela e manda nos guardas desta delegacia. O Delegado Peixoto estava na minha porta minutos antes do crime!",
-            WeakPointLabel = "seu irmão caçula Tiago",
-            WeakPointKeywords = new[] { "irmão", "irmao", "tiago", "caçula", "cacula", "família", "salvar", "proteção" },
-            WeakPointReactionSpeech = "Pelo amor que você tem à sua mãe, salvem meu irmão Tiago da pensão! O Delegado Peixoto jurou matar o garoto se eu contasse que foi ele quem entrou no provador com uma arma!",
-            ConfessionSpeech = "O Delegado Peixoto armou tudo! Ele devia cem mil ao agiota e aproveitou minha ida à esquina para atirar em Miro pelas costas e enfiar o revólver 32 no forro do manequim número 4 da minha oficina!",
-            ExonerationSpeech = "Deus abençoe suas mãos, detetive! Você salvou um velho alfaiate da forca! O verdadeiro assassino é o Delegado Peixoto e a arma está no manequim número 4!",
-            KeyAccompliceWord = "Delegado Peixoto",
-            KeyConfessionWord = "manequim número 4",
-            HiddenObjectLabel = "o revólver calibre 32 de Peixoto",
-            BonusClueTitle = "Conluio do Delegado Peixoto",
-            BonusClueDescription = "Raul revelou que o Delegado Peixoto forjou o homicídio para se livrar do agiota e jogou a arma em seu manequim.",
-            BonusClueKeywords = new[] { "delegado", "peixoto", "manequim", "revólver", "revolver", "armação" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Fita Métrica com Pólvora",
-                    Description = "A fita métrica deixada sobre o balcão continha manchas superficiais de fuligem.",
-                    Keywords = new[] { "fita", "métrica", "metrica", "pólvora", "polvora", "resíduos", "queima" },
-                    ExcuseSpeech = "Isso não é pólvora! É carvão do ferro de passar a vapor que usamos para passar as golas de terno!",
-                    AdmissionSpeech = "A fuligem na fita caiu quando o capanga de Peixoto puxou a fita métrica para estrangular Miro antes de atirar!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Paletó Encomendado por Peixoto",
-                    Description = "No cabide do provador havia um paletó de oficial da lei com coldre embutido sob medida.",
-                    Keywords = new[] { "terno", "paletó", "paleto", "peixoto", "arma", "cabide", "coldre" },
-                    ExcuseSpeech = "Peixoto encomendou aquele paletó semana passada e exigiu que ficasse pronto hoje às duas da tarde!",
-                    AdmissionSpeech = "Aquele paletó era a desculpa de Peixoto para entrar no provador armado sem levantar suspeitas de ninguém!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Nota Fiscal da Armarinho",
-                    Description = "No bolso de Raul havia um canhoto carimbado com data e horário das 14h05 da loja da esquina.",
-                    Keywords = new[] { "nota", "fiscal", "armarinho", "canhoto", "14h05", "recibo", "álibi" },
-                    ExcuseSpeech = "Olhe o horário carimbado: 14h05! O tiro soou às 14h02 enquanto eu estava no caixa da armarinho!",
-                    AdmissionSpeech = "Esse recibo é a prova irrefutável de que eu estava a três quadras de distância quando Peixoto apertou o gatilho!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Coldre sob Medida no Manequim",
-                    Description = "No forro interno do manequim nº 4 havia um coldre de couro com o brasão oficial da delegacia gravado.",
-                    Keywords = new[] { "coldre", "brasão", "brasao", "manequim", "couro", "delegacia", "oficial" },
-                    ExcuseSpeech = "Eu nunca usei coldres na minha alfaiataria! Aquele coldre com brasão é de uso exclusivo de oficiais da lei!",
-                    AdmissionSpeech = "Aquele coldre pertence ao Delegado Peixoto! Foi ele quem enfiou a arma ali enquanto a loja estava vazia!"
-                }
-            }
-        },
-
-        // 8. Os Negativos Proibidos da Alta Roda
-        new()
-        {
-            Title = "Os Negativos Proibidos da Alta Roda",
-            Context = "O colunista de escândalos Otávio Brandão foi encontrado asfixiado no laboratório fotográfico da Gazeta da Tarde.",
-            Objective = "Faça o fotógrafo forense Bruno Alencar confessar quem furtou as chapas fotográficas e onde escondeu os negativos comprometedores.",
-            NpcName = "Bruno Alencar",
-            NpcRole = "Fotógrafo Forense • Gazeta da Tarde",
-            NpcPersonality = "Cínico, observador e acostumado a lidar com cadáveres, mas entra em desespero quando o nome de sua noiva Olívia surge na apuração.",
-            SecretTruth = "O advogado da máfia Dr. Salazar comprou Bruno para sumir com as fotos do suborno do Senador. Bruno escondeu o rolo de negativos de nitrato dentro do fundo falso da bandeja de revelação fotográfica.",
-            OpeningGmNarration = "O cheiro penetrante de vinagre e fixador químico impregna as roupas de Bruno Alencar. Ele cruza as pernas na sala de interrogatório, girando a aliança de noivado no anelar.",
-            OpeningNpcDialogue = "\"Fotografo mortos e desgraças nesta cidade há doze anos, doutor. Otávio Brandão colecionava inimigos de todos os calibres políticos. Ele deve ter respirado ácido de revelação por engano no escuro.\"",
-            AlibiSpeech = "Eu passei a noite inteira no plantão do necrotério cobrindo os acidentes de trânsito da Zona Norte até as três da manhã.",
-            EmpathyEarlySpeech = "Brandão era um parasita que vivia de devassar a intimidade alheia para extorquir ricaços desavisados... ninguém vai chorar sobre a cova dele.",
-            EarlyWhoWhereSpeech = "O homem que mandou queimar aqueles negativos tem poder para transferir o senhor para uma delegacia de fronteira antes do amanhecer, detetive.",
-            WeakPointLabel = "sua noiva Olívia",
-            WeakPointKeywords = new[] { "noiva", "olívia", "olivia", "casamento", "família", "noivado", "segredo", "proteção" },
-            WeakPointReactionSpeech = "Não tragam a Olívia para este esgoto! Ela acredita que sou um homem honesto... foi o Dr. Salazar quem me deu o ultimato para apagar as fotos do Senador!",
-            ConfessionSpeech = "Eu desisto, detetive! Dr. Salazar mandou dois capangas sufocarem Brandão com um pano embebido em solvente. Antes de levarem o corpo, eu escondi os negativos de nitrato no fundo falso da bandeja de revelação número três do laboratório!",
-            KeyAccompliceWord = "Dr. Salazar",
-            KeyConfessionWord = "bandeja de revelação",
-            HiddenObjectLabel = "os negativos de nitrato",
-            BonusClueTitle = "Extorsão do Dr. Salazar",
-            BonusClueDescription = "Alencar confessou que o advogado mafioso Dr. Salazar ordenou a morte de Brandão para blindar o Senador.",
-            BonusClueKeywords = new[] { "salazar", "advogado", "bandeja", "negativos", "nitrato" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Filme de 35mm Queimado",
-                    Description = "No cinzeiro do laboratório havia tiras queimadas de celulóide com traços de imagens de uma mala de dinheiro.",
-                    Keywords = new[] { "filme", "35mm", "queimado", "celulóide", "celuloide", "mala", "fotos" },
-                    ExcuseSpeech = "Queimei rolos velhos com defeito de exposição, fazemos isso todas as semanas para não acumular lixo inflamável.",
-                    AdmissionSpeech = "Eram as fotos do Senador recebendo o envelope na suíte! Queimei apenas as bordas para assustar o Brandão, mas Salazar queria sangue!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Frasco de Fixador com Solvente",
-                    Description = "O frasco químico de Alencar continha vestígios de clorofórmio e solvente puro idêntico ao inalado pela vítima.",
-                    Keywords = new[] { "frasco", "fixador", "solvente", "clorofórmio", "cloroformio", "químico" },
-                    ExcuseSpeech = "Usamos solventes industriais para limpar as lentes objetivas e os filtros ópticos das câmeras de estúdio.",
-                    AdmissionSpeech = "Fui eu quem comprou o solvente a mando de Salazar... eu sabia que iam apagar o homem no quartinho escuro!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Recibo de Joalheria de 25 Mil",
-                    Description = "No bolso de Bruno havia a nota fiscal de um anel de diamantes quitado em dinheiro vivo duas horas após o crime.",
-                    Keywords = new[] { "recibo", "anel", "diamantes", "25 mil", "joalheria", "dinheiro", "olívia" },
-                    ExcuseSpeech = "Economizei cada centavo dos meus extras no jornal durante cinco anos para dar esse anel de noivado à mulher que amo.",
-                    AdmissionSpeech = "Aquele adiantamento em dinheiro vivo foi a paga de Salazar para garantir meu silêncio na perícia do necrotério!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Chapa de Vidro Submersa no Ácido",
-                    Description = "Uma chapa de revelação com os negativos intactos do senador foi achada no fundo do tanque de lavagem ácida.",
-                    Keywords = new[] { "chapa", "vidro", "tanque", "ácida", "negativos", "senador", "submersa", "fotos" },
-                    ExcuseSpeech = "Esqueci chapas velhas mergulhadas no tanque de enxágue durante a limpeza do fim de semana.",
-                    AdmissionSpeech = "Mergulhei aquela chapa no ácido para que Salazar pensasse que destruí tudo... era a minha única garantia de vida!"
-                }
-            }
-        },
-
-        // 9. A Trapaça Mortal do Cassino Riviera
-        new()
-        {
-            Title = "A Trapaça Mortal do Cassino Riviera",
-            Context = "O financista corrupto Gastão Morais foi alvejado com silenciador na adega privativa do Cassino Riviera após embolsar 200 mil fichas.",
-            Objective = "Faça a crupiê de elite Verônica Prado confessar quem ordenou o disparo e onde escondeu os tíquetes de caixa clandestinos.",
-            NpcName = "Verônica Prado",
-            NpcRole = "Crupiê de Roleta • Cassino Riviera",
-            NpcPersonality = "Sedutora, calculista e perspicaz, finge indiferença mundana, mas entra em colapso se sua mãe doente for desamparada.",
-            SecretTruth = "O dono clandestino do cassino, 'Tubarão' Silveira, descobriu que Gastão usava um ímã nos dados. Silveira executou Gastão e Verônica escondeu as fichas de alto valor e os tíquetes no duto de ventilação da sala VIP.",
-            OpeningGmNarration = "Verônica Prado observa você por trás de uma nuvem de fumaça aromática de cigarro turco, com seu vestido de seda esmeralda destoando das paredes cinzentas da delegacia.",
-            OpeningNpcDialogue = "\"Gastão Morais era um trapaceiro arrogante que pensava que a sorte sorria para o charme dele. Se ele levou chumbo na adega, detetive, aposto que foi cobrança de alguma das dezenas de mulheres que ele lesou nesta praça.\"",
-            AlibiSpeech = "Eu estava operando a mesa principal de bacará diante de trinta testemunhas no salão dourado até as três da manhã.",
-            EmpathyEarlySpeech = "Um homem que ganha duzentos mil na roleta em meia hora assina o próprio atestado de óbito nesta cidade, detetive... você sabe como a casa opera.",
-            EarlyWhoWhereSpeech = "O homem que puxou o gatilho naquela adega é quem banca a campanha do Secretário de Segurança. Quer mesmo que eu morra envenenada na cela esta noite?",
-            WeakPointLabel = "sua mãe idosa dona Alzira",
-            WeakPointKeywords = new[] { "mãe", "mae", "alzira", "idosa", "remédios", "asilo", "família", "proteção" },
-            WeakPointReactionSpeech = "Parem! A minha mãe não suportaria um escândalo desses, ela nem imagina onde eu trabalho à noite! Foi o 'Tubarão' Silveira quem ordenou a execução do Gastão!",
-            ConfessionSpeech = "Eu conto onde estão as provas! Silveira descobriu o golpe do Gastão e disparou à queima-roupa na adega. Fui eu quem pegou os tíquetes clandestinos de duzentos mil e escondi tudo dentro do duto de ventilação atrás da tapeçaria da sala VIP!",
-            KeyAccompliceWord = "Tubarão Silveira",
-            KeyConfessionWord = "duto de ventilação",
-            HiddenObjectLabel = "os tíquetes de caixa e as fichas",
-            BonusClueTitle = "Ordem do Tubarão Silveira",
-            BonusClueDescription = "Verônica admitiu que o proprietário clandestino Silveira ordenou a morte de Gastão para não pagar o prêmio.",
-            BonusClueKeywords = new[] { "tubarão", "tubarao", "silveira", "duto", "fichas", "ventilação" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Ficha de Marfim Manchada",
-                    Description = "No forro da bolsa de festa de Verônica foi achada uma ficha especial de marfim de 50 mil gravada com o nome de Gastão.",
-                    Keywords = new[] { "ficha", "marfim", "50 mil", "bolsa", "gastão", "gastao", "sangue" },
-                    ExcuseSpeech = "Gastão me deu aquela ficha como gorjeta pública após a primeira rodada vitoriosa no pano verde, dezenas de apostadores viram.",
-                    AdmissionSpeech = "Gastão tentou me dar aquela ficha na adega implorando para que eu abrisse a saída de emergência antes de Silveira chegar!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Ímã Cilíndrico de Precisão",
-                    Description = "Um eletroímã miniaturizado compatível com a roleta foi localizado na caixa de maquiagem de Verônica.",
-                    Keywords = new[] { "ímã", "ima", "eletroímã", "roleta", "maquiagem", "cilíndrico", "trapaça" },
-                    ExcuseSpeech = "Aquele cilindro de metal é apenas a haste retrátil do meu estojo de rímel para cílios, qualquer mulher carrega isso.",
-                    AdmissionSpeech = "Eu operava o ímã sob o tapete da roleta para Silveira controlar as perdas... Gastão descobriu o mecanismo e começou a nos chantagear!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Chave da Adega Privativa",
-                    Description = "O registro de segurança indicou que o cartão perfurado pessoal de Verônica destrancou a adega às 02h45.",
-                    Keywords = new[] { "chave", "cartão", "cartao", "adega", "02h45", "perfurado", "registro" },
-                    ExcuseSpeech = "Desci para buscar champanhe safra especial para a mesa do cônsul e devo ter registrado o ponto por mero engano de relógio.",
-                    AdmissionSpeech = "Eu abri a porta da adega às duas e quarenta e cinco porque Silveira me mandou atrair o Gastão até lá com a promessa do pagamento em dinheiro vivo!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Dados com Centro de Chumbo",
-                    Description = "No cinzeiro de cristal da sala VIP foram encontrados dados viciados com núcleo de chumbo pesado.",
-                    Keywords = new[] { "dados", "chumbo", "viciados", "núcleo", "nucleo", "roleta", "trapaça", "pesado" },
-                    ExcuseSpeech = "Esses dados são relíquias decorativas que ficam expostas no mostruário do cassino.",
-                    AdmissionSpeech = "Gastão usou esses dados viciados para quebrar a banca! Silveira não aceitou a perda e desceu armado para cobrar a conta!"
-                }
-            }
-        },
-
-        // 10. O Xarope da Farmácia Central
-        new()
-        {
-            Title = "O Xarope da Farmácia Central",
-            Context = "O venerável Juiz Eurico Brandão faleceu em convulsões após tomar seu xarope noturno adulterado com estricnina concentrada.",
-            Objective = "Faça o químico farmacêutico Dr. Rodolfo Mendes confessar quem pagou pela manipulação letal e onde guardou o livro de registros de venenos.",
-            NpcName = "Dr. Rodolfo Mendes",
-            NpcRole = "Químico Farmacêutico • Farmácia Central",
-            NpcPersonality = "Metódico, tímido e ansioso, ajeita os óculos sem parar e desmorona com facilidade quando sua filha universitária é mencionada.",
-            SecretTruth = "A viúva do juiz, dona Amélia Brandão, pagou 100 mil dólares para Rodolfo trocar o sedativo por estricnina. Rodolfo escondeu o livro negro de substâncias controladas no fundo falso do armário de morfina.",
-            OpeningGmNarration = "Dr. Rodolfo Mendes esfrega as mãos nervosamente sob a luz da mesa, o jaleco branco salpicado de manchas amareladas de reagentes químicos.",
-            OpeningNpcDialogue = "\"Eu avio receitas com precisão matemática há trinta anos nesta praça, senhor detetive. Se o frasco do juiz continha veneno, o xarope foi manipulado após sair do balcão da minha farmácia.\"",
-            AlibiSpeech = "Eu encerrei meu plantão às oito da noite e entreguei o frasco de xarope lacrado ao motorista particular da família Brandão.",
-            EmpathyEarlySpeech = "O juiz Brandão era um homem autoritário que tratava a própria esposa como prisioneira em casa... uma situação deplorável que a vizinhança inteira conhecia.",
-            EarlyWhoWhereSpeech = "A pessoa que comprou aquele frasco tem advogados influentes no Supremo Tribunal. Se eu falar, minha filha perde a bolsa de estudos e a vida.",
-            WeakPointLabel = "sua filha Júlia que estuda no exterior",
-            WeakPointKeywords = new[] { "filha", "júlia", "julia", "exterior", "bolsa", "estudos", "família", "médica" },
-            WeakPointReactionSpeech = "Minha filha Júlia não pode pagar pelos meus erros! Ela é tudo o que me resta... foi a viúva Amélia Brandão quem me coagiu a trocar as ampolas!",
-            ConfessionSpeech = "Eu confesso perante a lei! Dona Amélia Brandão descobriu que seria deserdada e me ofereceu cem mil dólares para dosar a estricnina no xarope. O livro com as fórmulas originais e os pagamentos está escondido no fundo falso do armário de morfina da farmácia!",
-            KeyAccompliceWord = "Amélia Brandão",
-            KeyConfessionWord = "armário de morfina",
-            HiddenObjectLabel = "o livro de substâncias controladas",
-            BonusClueTitle = "Pacto com Amélia Brandão",
-            BonusClueDescription = "Mendes confessou que a viúva Amélia Brandão encomendou o envenenamento para herdar a fortuna do juiz.",
-            BonusClueKeywords = new[] { "amélia", "amelia", "viúva", "morfina", "estricnina", "livro" },
-            Clues = new[]
-            {
-                new ClueBlueprint
-                {
-                    Title = "Balança Analítica com Estricnina",
-                    Description = "A perícia encontrou microcristais de estricnina nos pratos da balança de precisão privativa de Rodolfo.",
-                    Keywords = new[] { "balança", "balanca", "estricnina", "precisão", "cristais", "química" },
-                    ExcuseSpeech = "Estricnina é usada em microdoses terapêuticas em tônicos cardíacos legais devidamente autorizados pela vigilância sanitária.",
-                    AdmissionSpeech = "Pesei cinco gramas da estricnina pura sim... a dosagem que coloquei naquele xarope era suficiente para parar o coração de dez homens!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Cheque Nominal de 50 Mil",
-                    Description = "Um cheque da conta pessoal de Amélia Brandão foi depositado na caderneta de Mendes na véspera da morte.",
-                    Keywords = new[] { "cheque", "50 mil", "cinquenta mil", "amélia", "amelia", "depósito", "banco" },
-                    ExcuseSpeech = "Aquele cheque quitava uma antiga encomenda de medicamentos caros e cosméticos importados da Europa para a senhora Brandão.",
-                    AdmissionSpeech = "Aquele cheque foi apenas a primeira metade do suborno que dona Amélia me prometeu para preparar a poção mortal!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Ampola Quebrada no Lixo da Botica",
-                    Description = "No lixo químico dos fundos foram encontrados cacos de ampola com selo de importação alemão de veneno concentrado.",
-                    Keywords = new[] { "ampola", "lixo", "cacos", "alemão", "veneno", "botica", "selo" },
-                    ExcuseSpeech = "Descartei ampolas velhas vencidas que estavam ocupando espaço nas gavetas superiores do laboratório.",
-                    AdmissionSpeech = "Quebrei a ampola para fingir acidente caso a polícia fizesse vistoria de estoque logo após o velório!"
-                },
-                new ClueBlueprint
-                {
-                    Title = "Livro de Fórmulas com Rasuras",
-                    Description = "No livro oficial de controle da farmácia, a página da receita do juiz teve a dosagem apagada com ácido.",
-                    Keywords = new[] { "livro", "fórmulas", "formulas", "receitas", "rasuras", "ácido", "dosagem", "estricnina" },
-                    ExcuseSpeech = "Derramei reagente sobre o livro por acidente enquanto limpava a bancada de vidro.",
-                    AdmissionSpeech = "Eu rasurei a quantidade de estricnina no livro para que os fiscais da saúde não descobrissem a dose letal!"
-                }
-            }
-        }
-    };
 
     /// <summary>
-    /// Seleciona um caso que ainda não foi visto na sessão, ou gera um novo caso procedural inédito.
+    /// Gera proceduralmente um caso Noir Ãºnico e inÃ©dito para a sessÃ£o.
     /// </summary>
     public static (NoirCaseBlueprint Blueprint, bool IsProcedurallyGenerated) GetUniqueBlueprint(HashSet<string>? usedTitles = null)
     {
         usedTitles ??= new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        // 1. Tenta pegar um caso dos artesanais que ainda não foi jogado
-        var available = BaseBlueprints.Where(b => !usedTitles.Contains(b.Title)).ToList();
-        if (available.Count > 0)
-        {
-            var chosen = available[Rng.Next(available.Count)];
-            usedTitles.Add(chosen.Title);
-            return (chosen, false);
-        }
-
-        // 2. Se todos os casos base já foram jogados, sintetiza um caso procedural inédito e único!
         var synthetic = GenerateInfiniteProceduralBlueprint(usedTitles);
         usedTitles.Add(synthetic.Title);
         return (synthetic, true);
@@ -1148,10 +508,9 @@ public static class ProceduralCaseGenerator
 
         return list;
     }
-
     /// <summary>
-    /// Sintetizador procedural que monta dinamicamente casos infinitos combinando arquétipos,
-    /// motivos, provas e segredos sem nunca repetir a mesma configuração.
+    /// Sintetizador procedural que monta dinamicamente casos infinitos combinando arquÃ©tipos,
+    /// motivos, provas e segredos sem nunca repetir a mesma configuraÃ§Ã£o.
     /// </summary>
     private static NoirCaseBlueprint GenerateInfiniteProceduralBlueprint(HashSet<string> usedTitles)
     {
@@ -1163,90 +522,293 @@ public static class ProceduralCaseGenerator
         {
             new
             {
-                TitleSeed = "O Enigma do Cofre da Estação",
-                Context = "O tesoureiro da linha férrea foi encontrado inconsciente e o malote de 150 mil da folha de pagamento desapareceu.",
-                Objective = $"Faça {suspectName} confessar quem forçou o cofre e onde escondeu as chaves mestras e o dinheiro.",
-                Role = "Despachante Ferroviário • Estação Central",
-                Personality = "Pragmático e cansado, mas teme a ruína financeira de sua família.",
+                TitleSeed = "O Enigma do Cofre da EstaÃ§Ã£o",
+                Context = "O tesoureiro da linha fÃ©rrea foi encontrado inconsciente e o malote de 150 mil da folha de pagamento desapareceu.",
+                Objective = $"FaÃ§a {suspectName} confessar quem forÃ§ou o cofre e onde escondeu as chaves mestras e o dinheiro.",
+                Role = "Despachante FerroviÃ¡rio â€¢ EstaÃ§Ã£o Central",
+                Personality = "PragmÃ¡tico e cansado, mas teme a ruÃ­na financeira de sua famÃ­lia.",
                 Accomplice = "Inspetor Cordeiro",
-                HiddenPlace = "dentro da caldeira da locomotiva nº 9",
+                HiddenPlace = "dentro da caldeira da locomotiva nÂº 9",
                 HiddenObj = "o malote com 150 mil",
                 WeakPoint = "sua neta Maria",
-                WeakKeywords = new[] { "neta", "maria", "família", "menina", "salvar", "hospital" },
+                WeakKeywords = new[] { "neta", "maria", "famÃ­lia", "menina", "salvar", "hospital" },
                 Clue1Title = "Chave Inglesa com Sangue Seco",
-                Clue1Desc = $"Uma chave pesada pertencente à oficina de {suspectName} foi localizada atrás da bilheteria.",
-                Clue1Excuse = "Aquela chave sumiu da minha caixa de ferramentas na última quarta-feira, qualquer foguista teve acesso.",
+                Clue1Desc = $"Uma chave pesada pertencente Ã  oficina de {suspectName} foi localizada atrÃ¡s da bilheteria.",
+                Clue1Excuse = "Aquela chave sumiu da minha caixa de ferramentas na Ãºltima quarta-feira, qualquer foguista teve acesso.",
                 Clue1Adm = "Sim... a chave era minha! Fui eu quem desferiu o golpe quando o tesoureiro tentou puxar o alarme!",
                 Clue2Title = "Bilhete de Passagem Rasgado",
-                Clue2Desc = "Um tíquete de fuga para o porto na madrugada com horário marcado para as 03h10.",
+                Clue2Desc = "Um tÃ­quete de fuga para o porto na madrugada com horÃ¡rio marcado para as 03h10.",
                 Clue2Excuse = "Comprei a passagem apenas para visitar parentes no litoral durante minha folga regulamentar.",
-                Clue2Adm = "A passagem era para mim sim! Eu ia fugir no cargueiro das três e dez assim que entregasse a grana!",
+                Clue2Adm = "A passagem era para mim sim! Eu ia fugir no cargueiro das trÃªs e dez assim que entregasse a grana!",
                 Clue3Title = "Graxa Especial da Tranca",
-                Clue3Desc = "Vestígios de lubrificante químico militar encontrados nas unhas e punhos da camisa do suspeito.",
+                Clue3Desc = "VestÃ­gios de lubrificante quÃ­mico militar encontrados nas unhas e punhos da camisa do suspeito.",
                 Clue3Excuse = "Limpei as engrenagens da catraca de embarque antes de encerrar o expediente da noite.",
-                Clue3Adm = "A graxa é do segredo do cofre! Cordeiro me deu o código e me mandou forçar a maçaneta interna!",
-                Clue4Title = "Relógio de Bolso Amassado",
-                Clue4Desc = "O relógio do tesoureiro travado no horário exato do assalto, com fibras de uniforme de maquinista.",
-                Clue4Excuse = "O tesoureiro vivia deixando coisas no vestiário geral dos maquinistas.",
-                Clue4Adm = "Eu arranquei o relógio dele durante a luta para que ninguém soubesse o minuto exato da ação!"
+                Clue3Adm = "A graxa Ã© do segredo do cofre! Cordeiro me deu o cÃ³digo e me mandou forÃ§ar a maÃ§aneta interna!",
+                Clue4Title = "RelÃ³gio de Bolso Amassado",
+                Clue4Desc = "O relÃ³gio do tesoureiro travado no horÃ¡rio exato do assalto, com fibras de uniforme de maquinista.",
+                Clue4Excuse = "O tesoureiro vivia deixando coisas no vestiÃ¡rio geral dos maquinistas.",
+                Clue4Adm = "Eu arranquei o relÃ³gio dele durante a luta para que ninguÃ©m soubesse o minuto exato da aÃ§Ã£o!"
             },
             new
             {
                 TitleSeed = "Chantagem no Jornal da Noite",
                 Context = "O editor-chefe investigativo foi morto por asfixia em sua sala com os arquivos da quadrilha revirados.",
-                Objective = $"Faça {suspectName} confessar quem encomendou o roubo das pastas e onde escondeu os manuscritos.",
-                Role = "Chefe de Redação • Diário Popular",
-                Personality = "Culto, sarcástico e tenso, com histórico de dívidas de apostas clandestinas.",
+                Objective = $"FaÃ§a {suspectName} confessar quem encomendou o roubo das pastas e onde escondeu os manuscritos.",
+                Role = "Chefe de RedaÃ§Ã£o â€¢ DiÃ¡rio Popular",
+                Personality = "Culto, sarcÃ¡stico e tenso, com histÃ³rico de dÃ­vidas de apostas clandestinas.",
                 Accomplice = "Senador Fagundes",
-                HiddenPlace = "no depósito de papel de bobina do subsolo",
-                HiddenObj = "os manuscritos de denúncia",
-                WeakPoint = "seu filho recém-nascido Lucas",
-                WeakKeywords = new[] { "filho", "lucas", "bebê", "bebe", "berço", "família", "proteção" },
+                HiddenPlace = "no depÃ³sito de papel de bobina do subsolo",
+                HiddenObj = "os manuscritos de denÃºncia",
+                WeakPoint = "seu filho recÃ©m-nascido Lucas",
+                WeakKeywords = new[] { "filho", "lucas", "bebÃª", "bebe", "berÃ§o", "famÃ­lia", "proteÃ§Ã£o" },
                 Clue1Title = "Lauda Datilografada com Sangue",
-                Clue1Desc = "Uma folha de texto da máquina pessoal do suspeito encontrada sob o corpo do editor.",
-                Clue1Excuse = "Aquela lauda era apenas uma matéria policial arquivada que o editor pediu para revisar antes do fechamento.",
+                Clue1Desc = "Uma folha de texto da mÃ¡quina pessoal do suspeito encontrada sob o corpo do editor.",
+                Clue1Excuse = "Aquela lauda era apenas uma matÃ©ria policial arquivada que o editor pediu para revisar antes do fechamento.",
                 Clue1Adm = "A lauda caiu da minha pasta quando ele me pegou vasculhando a gaveta dele!",
                 Clue2Title = "Tinteiro de Prata Quebrado",
-                Clue2Desc = "Fragmentos de cristal com marcas de impacto violento no chão do gabinete da vítima.",
-                Clue2Excuse = "O tinteiro escorregou da escrivaninha na tarde anterior durante uma discussão sobre prazos de pauta.",
+                Clue2Desc = "Fragmentos de cristal com marcas de impacto violento no chÃ£o do gabinete da vÃ­tima.",
+                Clue2Excuse = "O tinteiro escorregou da escrivaninha na tarde anterior durante uma discussÃ£o sobre prazos de pauta.",
                 Clue2Adm = "O tinteiro se quebrou quando o capanga de Fagundes prensou o editor contra a parede!",
-                Clue3Title = "Chave da Sala de Máquinas",
-                Clue3Desc = $"A chave do depósito onde as pastas sumiram foi encontrada no bolso do casaco de {suspectName}.",
-                Clue3Excuse = "Tenho a cópia daquela chave porque guardo resmas de papel e formulários administrativos lá dentro.",
-                Clue3Adm = "Fui eu quem destrancou o depósito às duas da madrugada para esconder as pastas originais!",
+                Clue3Title = "Chave da Sala de MÃ¡quinas",
+                Clue3Desc = $"A chave do depÃ³sito onde as pastas sumiram foi encontrada no bolso do casaco de {suspectName}.",
+                Clue3Excuse = "Tenho a cÃ³pia daquela chave porque guardo resmas de papel e formulÃ¡rios administrativos lÃ¡ dentro.",
+                Clue3Adm = "Fui eu quem destrancou o depÃ³sito Ã s duas da madrugada para esconder as pastas originais!",
                 Clue4Title = "Bloco de Notas Rascunhado",
-                Clue4Desc = "Um bloco com anotações de quantias em dinheiro e as iniciais do senador envolvido no escândalo.",
-                Clue4Excuse = "São apenas estimativas de tiragem e custos de gráfica para a edição de domingo.",
+                Clue4Desc = "Um bloco com anotaÃ§Ãµes de quantias em dinheiro e as iniciais do senador envolvido no escÃ¢ndalo.",
+                Clue4Excuse = "SÃ£o apenas estimativas de tiragem e custos de grÃ¡fica para a ediÃ§Ã£o de domingo.",
                 Clue4Adm = "Eram os valores do suborno que Fagundes me prometeu para queimar a reportagem!"
             },
             new
             {
-                TitleSeed = "O Assassinato no Cabaré Imperial",
-                Context = "A estrela do cabaré foi encontrada sem vida em seu camarim após uma briga aos fundos às 02h20.",
-                Objective = $"Faça {suspectName} confessar quem contratou o crime e onde escondeu as joias furtadas.",
-                Role = "Maitre e Barman • Cabaré Imperial",
-                Personality = "Frio, polido e observador, mas desesperado para não ser condenado à pena capital.",
+                TitleSeed = "O Assassinato no CabarÃ© Imperial",
+                Context = "A estrela do cabarÃ© foi encontrada sem vida em seu camarim apÃ³s uma briga aos fundos Ã s 02h20.",
+                Objective = $"FaÃ§a {suspectName} confessar quem contratou o crime e onde escondeu as joias furtadas.",
+                Role = "Maitre e Barman â€¢ CabarÃ© Imperial",
+                Personality = "Frio, polido e observador, mas desesperado para nÃ£o ser condenado Ã  pena capital.",
                 Accomplice = "Comendador Barreto",
-                HiddenPlace = "dentro do barril de uísque falso nº 12",
+                HiddenPlace = "dentro do barril de uÃ­sque falso nÂº 12",
                 HiddenObj = "as joias de esmeralda",
-                WeakPoint = "sua irmã mais nova Teresa",
-                WeakKeywords = new[] { "irmã", "irma", "teresa", "família", "moça", "proteção", "convento" },
-                Clue1Title = "Lenço Manchado de Cosmético",
-                Clue1Desc = "Um lenço fino de linho com a fragrância exclusiva da vítima e marcas de dedos ensanguentados.",
-                Clue1Excuse = "Entreguei o lenço à artista durante o intervalo do primeiro ato quando ela retocava a maquiagem.",
-                Clue1Adm = "O lenço foi usado para abafar os gritos dela quando Barreto mandou cobrar o colar!",
-                Clue2Title = "Anel com Brasão Nobre",
-                Clue2Desc = "Um anel masculino de ouro pesado caído atrás da cortina de veludo do camarim.",
+                WeakPoint = "sua irmÃ£ mais nova Teresa",
+                WeakKeywords = new[] { "irmÃ£", "irma", "teresa", "famÃ­lia", "moÃ§a", "proteÃ§Ã£o", "convento" },
+                Clue1Title = "LenÃ§o Manchado de CosmÃ©tico",
+                Clue1Desc = "Um lenÃ§o fino de linho com a fragrÃ¢ncia exclusiva da vÃ­tima e marcas de dedos ensanguentados.",
+                Clue1Excuse = "Entreguei o lenÃ§o Ã  artista durante o intervalo do primeiro ato quando ela retocava a maquiagem.",
+                Clue1Adm = "O lenÃ§o foi usado para abafar os gritos dela quando Barreto mandou cobrar o colar!",
+                Clue2Title = "Anel com BrasÃ£o Nobre",
+                Clue2Desc = "Um anel masculino de ouro pesado caÃ­do atrÃ¡s da cortina de veludo do camarim.",
                 Clue2Excuse = "Aquele anel foi esquecido por algum dos clientes abonados que frequentam as mesas VIP do mezanino.",
-                Clue2Adm = "O anel é do próprio Comendador Barreto... caiu da mão dele durante a luta no camarim!",
-                Clue3Title = "Taça com Resíduo Químico",
-                Clue3Desc = "Uma taça de cristal com gotas de sedativo para cavalos misturado ao licor servido pelo bar.",
-                Clue3Excuse = "Sirvo centenas de coquetéis todas as noites, qualquer garçom pode ter trocado as bandejas na cozinha.",
-                Clue3Adm = "Fui eu quem colocou as gotas no licor a mando de Barreto para que ela não resistisse ao assalto!",
-                Clue4Title = "Chave da Saída de Emergência",
-                Clue4Desc = "A chave de ferro dos fundos do cabaré com fibras do vestido da vítima presa no ferrolho.",
-                Clue4Excuse = "A porta dos fundos fica sempre aberta para os entregadores de bebidas e músicos.",
-                Clue4Adm = "Eu destranquei a porta de emergência para facilitar a fuga rápida de Barreto com as joias!"
+                Clue2Adm = "O anel Ã© do prÃ³prio Comendador Barreto... caiu da mÃ£o dele durante a luta no camarim!",
+                Clue3Title = "TaÃ§a com ResÃ­duo QuÃ­mico",
+                Clue3Desc = "Uma taÃ§a de cristal com gotas de sedativo para cavalos misturado ao licor servido pelo bar.",
+                Clue3Excuse = "Sirvo centenas de coquetÃ©is todas as noites, qualquer garÃ§om pode ter trocado as bandejas na cozinha.",
+                Clue3Adm = "Fui eu quem colocou as gotas no licor a mando de Barreto para que ela nÃ£o resistisse ao assalto!",
+                Clue4Title = "Chave da SaÃ­da de EmergÃªncia",
+                Clue4Desc = "A chave de ferro dos fundos do cabarÃ© com fibras do vestido da vÃ­tima presa no ferrolho.",
+                Clue4Excuse = "A porta dos fundos fica sempre aberta para os entregadores de bebidas e mÃºsicos.",
+                Clue4Adm = "Eu destranquei a porta de emergÃªncia para facilitar a fuga rÃ¡pida de Barreto com as joias!"
+            },
+            new
+            {
+                TitleSeed = "Emboscada no Clube Blue Note",
+                Context = "O informante 'Rato' Soares foi morto com dois tiros Ã s 02h00 no beco atrÃ¡s do Clube de Jazz Blue Note.",
+                Objective = $"FaÃ§a {suspectName} confessar quem atirou em Soares e onde escondeu o livro-caixa do sindicato.",
+                Role = "Gerente Noturno â€¢ Clube Blue Note",
+                Personality = "IrÃ´nico e vivido na noite, tenta manter a frieza, mas entra em pÃ¢nico quando a seguranÃ§a de sua famÃ­lia Ã© ameaÃ§ada.",
+                Accomplice = "Donato Braga",
+                HiddenPlace = "dentro da caixa acÃºstica do piano de cauda do clube",
+                HiddenObj = "o livro-caixa do sindicato",
+                WeakPoint = "sua irmÃ£ LÃºcia",
+                WeakKeywords = new[] { "irmÃ£", "irma", "lÃºcia", "lucia", "famÃ­lia", "familia", "proteger", "proteÃ§Ã£o" },
+                Clue1Title = "Chave da Porta dos Fundos",
+                Clue1Desc = "Uma cÃ³pia recente da chave da porta dos fundos foi encontrada caÃ­da no beco onde o corpo foi achado.",
+                Clue1Excuse = "Aquela cÃ³pia sumiu do quadro da gerÃªncia hÃ¡ duas semanas, qualquer garÃ§om pode ter pegado.",
+                Clue1Adm = "Fui eu quem destrancou os fundos Ã s duas em ponto! Donato jurou matar minha irmÃ£ se eu nÃ£o abrisse!",
+                Clue2Title = "Isqueiro de Prata Gravado",
+                Clue2Desc = $"Um isqueiro gravado com as iniciais de {suspectName} achado a trÃªs metros do cadÃ¡ver no beco.",
+                Clue2Excuse = "Perdi esse isqueiro no balcÃ£o do bar durante o show da meia-noite, diante de dezenas de clientes.",
+                Clue2Adm = "O isqueiro caiu da minha mÃ£o quando ouvi os tiros no beco e saÃ­ correndo desesperado!",
+                Clue3Title = "Bilhete com AmeaÃ§a de Morte",
+                Clue3Desc = "Um bilhete amassado com caligrafia recortada de jornal encontrado no bolso do terno do suspeito.",
+                Clue3Excuse = "AlguÃ©m colocou esse bilhete no bolso do meu casaco na chapelaria enquanto eu atendia as mesas.",
+                Clue3Adm = "O bilhete veio de Donato Braga! Ele me mandou calar a boca ou LÃºcia seria a prÃ³xima vÃ­tima!",
+                Clue4Title = "Fita MagnÃ©tica de GravaÃ§Ã£o",
+                Clue4Desc = "Um carretel de gravaÃ§Ã£o do escritÃ³rio com trechos de discussÃ£o entre a gerÃªncia e os capangas de Donato.",
+                Clue4Excuse = "Gravamos os ensaios musicais dos mÃºsicos de jazz, nÃ£o hÃ¡ nada criminoso naquelas fitas.",
+                Clue4Adm = "Eu gravei Donato me ameaÃ§ando no escritÃ³rio para ter uma garantia caso a polÃ­cia me pegasse!"
+            },
+            new
+            {
+                TitleSeed = "O Veneno no CÃ¡lice da Ã“pera",
+                Context = "O maestro da Ã“pera Municipal foi envenenado com estricnina durante o intervalo do segundo ato.",
+                Objective = $"FaÃ§a {suspectName} confessar quem encomendou o veneno e onde escondeu a partitura original roubada.",
+                Role = "Pianista e Arranjador â€¢ Ã“pera Municipal",
+                Personality = "MetÃ³dico, vaidoso e ansioso, com rancor profissional reprimido e dÃ­vidas de jogatina.",
+                Accomplice = "CrÃ­tico OtÃ¡vio Munhoz",
+                HiddenPlace = "no vÃ£o do forro do mezanino 3",
+                HiddenObj = "a partitura original roubada",
+                WeakPoint = "seu sobrinho doente TomÃ¡s",
+                WeakKeywords = new[] { "sobrinho", "tomÃ¡s", "tomas", "menino", "famÃ­lia", "hospital", "remÃ©dio" },
+                Clue1Title = "Frasco de Estricnina FarmacÃªutica",
+                Clue1Desc = "Um frasco de vidro Ã¢mbar com resÃ­duos de pÃ³ branco tÃ³xico encontrado na lixeira do camarim.",
+                Clue1Excuse = "Uso esse produto na manutenÃ§Ã£o quÃ­mica das cordas e teclas de marfim dos pianos do teatro.",
+                Clue1Adm = "O pÃ³ era estricnina pura... OtÃ¡vio Munhoz me entregou o frasco no saguÃ£o e me mandou pingar na taÃ§a!",
+                Clue2Title = "Partitura com AnotaÃ§Ãµes Manuscritas",
+                Clue2Desc = "A partitura do maestro com comentÃ¡rios sarcÃ¡sticos e anotaÃ§Ãµes tÃ©cnicas feitas com a caligrafia do suspeito.",
+                Clue2Excuse = "EstudÃ¡vamos a mesma composiÃ§Ã£o lÃ­rica juntos pela manhÃ£, as anotaÃ§Ãµes eram estritamente harmÃ´nicas.",
+                Clue2Adm = "Eu odiava aquele homem! Ele roubou meus arranjos e Munhoz prometeu financiar minha Ã³pera se eu o tirasse do caminho!",
+                Clue3Title = "TaÃ§a de Cristal Manchada",
+                Clue3Desc = "A taÃ§a usada pelo maestro no intervalo continha impressÃµes parciais dos dedos do suspeito na haste.",
+                Clue3Excuse = "Entreguei a taÃ§a de Ã¡gua a pedido dele no fosso da orquestra antes do inÃ­cio do primeiro ato.",
+                Clue3Adm = "Sim, fui eu quem levou a taÃ§a ao camarim dele no intervalo... mas o veneno jÃ¡ estava misturado por Munhoz!",
+                Clue4Title = "Recibo de Casa de Penhores",
+                Clue4Desc = "Um recibo de penhor de joias de famÃ­lia para quitar dÃ©bitos de jogo datado de dois dias antes do crime.",
+                Clue4Excuse = "Apenas resgatei um relÃ³gio antigo que meu pai havia deixado com o penhorista.",
+                Clue4Adm = "Eu estava falido e Munhoz comprou minhas dÃ­vidas na mesa de bacarÃ¡ em troca do veneno!"
+            },
+            new
+            {
+                TitleSeed = "O Golpe no Grande Hotel",
+                Context = "O diplomata suÃ­Ã§o foi dopado na suÃ­te presidencial e uma maleta com microfilmagens secretas desapareceu.",
+                Objective = $"FaÃ§a {suspectName} confessar quem encomendou as microfilmagens e onde escondeu os rolos de filme.",
+                Role = "Concierge Noturno â€¢ Grande Hotel Central",
+                Personality = "Polido, calculista e cÃ­nico, habituado aos segredos da alta sociedade, mas apavorado com a penitenciÃ¡ria.",
+                Accomplice = "EspiÃ£o Viktor Klaus",
+                HiddenPlace = "no cofre de bagagens 14B da recepÃ§Ã£o",
+                HiddenObj = "as microfilmagens da embaixada",
+                WeakPoint = "sua noiva enfermeira Beatriz",
+                WeakKeywords = new[] { "noiva", "beatriz", "noivado", "moÃ§a", "famÃ­lia", "casamento" },
+                Clue1Title = "Chave Mestra das SuÃ­tes",
+                Clue1Desc = "O cartÃ£o mestra de metal das suÃ­tes de luxo foi registrado destrancando a suÃ­te 401 Ã s 03h15.",
+                Clue1Excuse = "Subi para levar toalhas limpas solicitadas pelo interfone da governanÃ§a Ã s trÃªs da manhÃ£.",
+                Clue1Adm = "Eu usei a chave mestra para abrir a suÃ­te enquanto Klaus colocava o Ã©ter no lenÃ§o!",
+                Clue2Title = "Rolo de Filme Revelado",
+                Clue2Desc = "Fragmentos de pelÃ­cula 16mm cortada encontrados na cesta de correspondÃªncias da portaria.",
+                Clue2Excuse = "Eram apenas fotos promocionais do saguÃ£o do hotel para o catÃ¡logo da temporada de inverno.",
+                Clue2Adm = "Eram as cÃ³pias dos tratados da embaixada... Klaus fotografou tudo em cinco minutos!",
+                Clue3Title = "CrachÃ¡ Registrado Ã s 03h15",
+                Clue3Desc = "O ponto eletrÃ´nico e a guarita registraram o crachÃ¡ do suspeito no corredor presidencial.",
+                Clue3Excuse = "FaÃ§o rondas periÃ³dicas em todos os andares para garantir a tranquilidade dos hÃ³spedes.",
+                Clue3Adm = "Eu fiquei vigiando o corredor enquanto Klaus revirava o cofre da suÃ­te!",
+                Clue4Title = "Envelope com Moeda Estrangeira",
+                Clue4Desc = "Cinco mil dÃ³lares em notas limpas escondidos atrÃ¡s do espelho do banheiro dos funcionÃ¡rios.",
+                Clue4Excuse = "Aquele envelope foi esquecido por algum turista estrangeiro no hall e guardado para devoluÃ§Ã£o.",
+                Clue4Adm = "Foi a primeira parcela que Klaus me pagou para garantir o acesso livre ao elevador privativo!"
+            },
+            new
+            {
+                TitleSeed = "O HomicÃ­dio na Cocheira do JÃ³quei",
+                Context = "O jÃ³quei campeÃ£o foi encontrado morto a golpes de estribo na baia do puro-sangue antes do Grande PrÃªmio.",
+                Objective = $"FaÃ§a {suspectName} confessar quem pagou pelo boicote do cavalo e onde escondeu a seringa dopante.",
+                Role = "VeterinÃ¡rio do HipÃ³dromo â€¢ Clube HÃ­pico",
+                Personality = "Nervoso, com dedos trÃªmulos e olhar evasivo, afundado em dÃ­vidas de apostas clandestinas.",
+                Accomplice = "Apostador Tonho Valente",
+                HiddenPlace = "dentro do cocho duplo da baia 7",
+                HiddenObj = "a seringa com sedativo para cavalos",
+                WeakPoint = "sua mÃ£e viÃºva dona Laura",
+                WeakKeywords = new[] { "mÃ£e", "mae", "laura", "idosa", "famÃ­lia", "viÃºva" },
+                Clue1Title = "Estribo Manchado de Sangue",
+                Clue1Desc = "Um estribo de ferro pesado com vestÃ­gios de sangue da vÃ­tima localizado sob a palha da cocheira.",
+                Clue1Excuse = "O estribo se soltou da sela durante o treino matinal e foi deixado no chÃ£o da baia pelos cavalariÃ§os.",
+                Clue1Adm = "O jÃ³quei me pegou com a seringa na mÃ£o na baia! Houve uma luta cega no escuro e o estribo atingiu a tÃªmpora dele!",
+                Clue2Title = "Cartela de Apostas de 100 Mil",
+                Clue2Desc = "Um bilhete de aposta vultosa contra o cavalo favorito apreendido no armÃ¡rio do vestiÃ¡rio do suspeito.",
+                Clue2Excuse = "Achei essa cartela caÃ­da na arquibancada apÃ³s o encerramento do pÃ¡reo da tarde anterior.",
+                Clue2Adm = "Tonho Valente apostou 100 mil contra o cavalo e me prometeu metade se o animal nÃ£o corresse!",
+                Clue3Title = "Frasco de Sedativo VeterinÃ¡rio Vazio",
+                Clue3Desc = "Um frasco de cloridrato de xilazina para cavalos com o lacre rompido na lixeira do consultÃ³rio.",
+                Clue3Excuse = "Uso esse sedativo regularmente em procedimentos cirÃºrgicos autorizados pela comissÃ£o de corridas.",
+                Clue3Adm = "A dose daquele frasco foi parar na seringa que Valente me mandou aplicar antes da largada!",
+                Clue4Title = "Luva de Borracha com Fibras",
+                Clue4Desc = "Luvas cirÃºrgicas com fios do uniforme de corrida do jÃ³quei presas no cano de esgoto da cocheira.",
+                Clue4Excuse = "Descartei as luvas apÃ³s fazer curativos de rotina nos tendÃµes do animal na manhÃ£ de ontem.",
+                Clue4Adm = "Eu tentei me livrar das luvas no cano quando vi que o jÃ³quei nÃ£o respirava mais!"
+            },
+            new
+            {
+                TitleSeed = "A Fraude do AntiquÃ¡rio",
+                Context = "O avaliador do museu foi asfixiado na sobreloja do antiquÃ¡rio apÃ³s descobrir que as joias da coroa eram rÃ©plicas de vidro.",
+                Objective = $"FaÃ§a {suspectName} confessar onde estÃ£o as joias autÃªnticas e quem financiou a cÃ³pia falsificada.",
+                Role = "Restaurador de RelÃ­quias â€¢ AntiquÃ¡rio Imperial",
+                Personality = "Erudito, arrogante e meticuloso, mas incapaz de suportar a ameaÃ§a pÃºblica aos seus entes queridos.",
+                Accomplice = "BarÃ£o Montenegro",
+                HiddenPlace = "dentro do relÃ³gio de pÃªndulo carrilhÃ£o do sÃ©culo XVIII",
+                HiddenObj = "as joias verdadeiras de safira",
+                WeakPoint = "sua filha pintora Mariana",
+                WeakKeywords = new[] { "filha", "mariana", "menina", "famÃ­lia", "ateliÃª", "proteÃ§Ã£o" },
+                Clue1Title = "Lupa de Ourives Quebrada",
+                Clue1Desc = "Fragmentos de lente graduada com impressÃµes digitais ensanguentadas sobre o tapete persa da loja.",
+                Clue1Excuse = "A lente escorregou da bancada durante o exame de rotina de moedas de prata na parte da tarde.",
+                Clue1Adm = "A lupa quebrou quando o avaliador me chamou de falsÃ¡rio e tentou pegar o telefone para chamar a polÃ­cia!",
+                Clue2Title = "Molde de Gesso com ResÃ­duo de Resina",
+                Clue2Desc = "Um molde usado para replicar o broche imperial com pÃ³ de vidro azul achado na pia da oficina.",
+                Clue2Excuse = "Estava apenas restaurando uma moldura barroca decorativa para um cliente particular da alta sociedade.",
+                Clue2Adm = "Eu moldei a rÃ©plica a mando de Montenegro! Ele trocou as safiras verdadeiras pela pasta de vidro!",
+                Clue3Title = "Nota PromissÃ³ria de 80 Mil RÃ©is",
+                Clue3Desc = "Um compromisso de pagamento assinado pelo BarÃ£o Montenegro no cofre de documentos do antiquÃ¡rio.",
+                Clue3Excuse = "Trata-se de uma transaÃ§Ã£o lÃ­cita referente Ã  venda de tapeÃ§arias flamengas do acervo da famÃ­lia dele.",
+                Clue3Adm = "Os 80 mil eram o pagamento pela cÃ³pia perfeita! Montenegro jÃ¡ tinha comprador no exterior!",
+                Clue4Title = "Retalho de Veludo Ensanguentado",
+                Clue4Desc = "Um pedaÃ§o de tecido de forro de estojo com gotas de sangue oculto atrÃ¡s da estante de tomos antigos.",
+                Clue4Excuse = "Cortei o dedo manuseando uma lÃ¢mina de x-ato enquanto encadernava um catÃ¡logo antigo.",
+                Clue4Adm = "O retalho serviu para sufocar o avaliador antes que ele conseguisse gritar por socorro na rua!"
+            },
+            new
+            {
+                TitleSeed = "A Sabotagem na FundiÃ§Ã£o SÃ£o Jorge",
+                Context = "A vÃ¡lvula principal da caldeira foi travada propositalmente, causando uma explosÃ£o que soterrou o lÃ­der grevista.",
+                Objective = $"FaÃ§a {suspectName} confessar quem pagou pela sabotagem da caldeira e onde escondeu a ferramenta de bloqueio.",
+                Role = "Mestre de Caldeira â€¢ FundiÃ§Ã£o SÃ£o Jorge",
+                Personality = "RÃºstico, taciturno e desconfiado da polÃ­cia, movido pelo medo das represÃ¡lias da diretoria fabril.",
+                Accomplice = "Capataz Silveira",
+                HiddenPlace = "no tubo de descarte de escÃ³ria sob a esteira 3",
+                HiddenObj = "a chave de bloqueio adulterada",
+                WeakPoint = "seu irmÃ£o caÃ§ula Pedro",
+                WeakKeywords = new[] { "irmÃ£o", "irmao", "pedro", "famÃ­lia", "menino", "salvar" },
+                Clue1Title = "ManÃ´metro Rompido com Marcas de Martelo",
+                Clue1Desc = "O marcador de pressÃ£o da caldeira 4 tinha ranhuras evidentes de golpe mecÃ¢nico desferido por trÃ¡s.",
+                Clue1Excuse = "O manÃ´metro estourou pela sobrepressÃ£o do vapor quente durante a troca de turno dos operÃ¡rios.",
+                Clue1Adm = "Fui eu quem bateu no manÃ´metro para que o vigia nÃ£o visse a pressÃ£o subir antes da detonaÃ§Ã£o!",
+                Clue2Title = "Luva de Amianto Queimada",
+                Clue2Desc = "Uma luva tÃ©rmica com as iniciais do suspeito encontrada prÃ³xima ao registro de alimentaÃ§Ã£o de gÃ¡s.",
+                Clue2Excuse = "Esqueci minhas luvas na bancada de trabalho ao encerrar o turno regular das 18 horas.",
+                Clue2Adm = "Eu tive que usar a luva para fechar o registro de escape sem queimar minhas mÃ£os!",
+                Clue3Title = "Ficha de Ponto com HorÃ¡rio Falso",
+                Clue3Desc = "O cartÃ£o de ponto marcava saÃ­da Ã s 18h10, mas testemunhas relatam movimentaÃ§Ã£o na caldeira Ã s 22h.",
+                Clue3Excuse = "Bati meu cartÃ£o e fui para a taverna da esquina beber com os outros metalÃºrgicos.",
+                Clue3Adm = "Silveira bateu meu cartÃ£o no inÃ­cio da noite e me fez voltar pelo portÃ£o dos fundos Ã s dez!",
+                Clue4Title = "MaÃ§o de Notas Graxentas",
+                Clue4Desc = "Dois mil cruzeiros manchados com Ã³leo mineral de motor localizados dentro da botina do suspeito.",
+                Clue4Excuse = "Eram minhas economias de meses de hora extra guardadas no armÃ¡rio para pagar a reforma de casa.",
+                Clue4Adm = "Silveira me deu essa grana viva na hora... prometeu que ninguÃ©m ia morrer na explosÃ£o!"
+            },
+            new
+            {
+                TitleSeed = "A Chantagem na FarmÃ¡cia Central",
+                Context = "O juiz distrital faleceu apÃ³s ingerir cÃ¡psulas manipuladas com dosagem letal de estricnina.",
+                Objective = $"FaÃ§a {suspectName} confessar quem encomendou a adulteraÃ§Ã£o do remÃ©dio e onde escondeu o caderno de dosagens.",
+                Role = "Manipulador FarmacÃªutico â€¢ Botica Central",
+                Personality = "TÃ­mido, metÃ³dico e aterrorizado pela perspectiva da forca, vulnerÃ¡vel Ã  compaixÃ£o pela sua famÃ­lia.",
+                Accomplice = "Advogado Bastos",
+                HiddenPlace = "no fundo falso do armÃ¡rio de controlados",
+                HiddenObj = "o caderno de receitas adulteradas",
+                WeakPoint = "sua filha pequena Clara",
+                WeakKeywords = new[] { "filha", "clara", "crianÃ§a", "crianca", "famÃ­lia", "berÃ§o" },
+                Clue1Title = "PilÃ£o de Porcelana com ResÃ­duo TÃ³xico",
+                Clue1Desc = "Um pilÃ£o de trituraÃ§Ã£o quÃ­mica com pÃ³ de estricnina achado debaixo da pia do laboratÃ³rio de manipulaÃ§Ã£o.",
+                Clue1Excuse = "Uso o pilÃ£o para moer compostos fitoterÃ¡picos analgÃ©sicos de venda comum no balcÃ£o.",
+                Clue1Adm = "Eu triturei a estricnina naquele pilÃ£o... Bastos me garantiu que era apenas um sedativo para afastar o juiz do julgamento!",
+                Clue2Title = "ReceituÃ¡rio Rasgado com a Caligrafia do Juiz",
+                Clue2Desc = "Restos de receita mÃ©dica oficial recuperados do incinerador de papel do pÃ¡tio interno.",
+                Clue2Excuse = "Descartei formulÃ¡rios vencidos e receitas arquivadas da semana passada conforme a vigilÃ¢ncia sanitÃ¡ria exige.",
+                Clue2Adm = "Eu tentei queimar a receita original porque a dosagem que coloquei na cÃ¡psula era cinco vezes maior!",
+                Clue3Title = "Frasco de Cianeto sem Lacre",
+                Clue3Desc = "Um vidro de estricnina do estoque controlado com o selo fiscal violado e 10 gramas a menos no peso.",
+                Clue3Excuse = "Houve evaporaÃ§Ã£o quÃ­mica ou erro de mediÃ§Ã£o do laboratÃ³rio fornecedor da matÃ©ria-prima.",
+                Clue3Adm = "As 10 gramas foram para as cÃ¡psulas que Bastos mandou entregar na residÃªncia do magistrado!",
+                Clue4Title = "Livro de FÃ³rmulas com Rasuras",
+                Clue4Desc = "No livro oficial de controle da farmÃ¡cia, a pÃ¡gina da receita do juiz teve a dosagem apagada com Ã¡cido.",
+                Clue4Excuse = "Derramei reagente sobre o livro por acidente enquanto limpava a bancada de vidro.",
+                Clue4Adm = "Eu rasurei a quantidade no livro para que os fiscais da saÃºde nÃ£o descobrissem a dose letal!"
             }
         };
 
@@ -1254,61 +816,148 @@ public static class ProceduralCaseGenerator
         {
             new
             {
-                TitleSeed = "A Armação no Cartório Central",
-                Context = "O cofre blindado de escrituras do Cartório foi saqueado e documentos de herança sumiram. Documentos comprometedores foram plantados na bolsa do suspeito.",
-                Objective = $"Comprove a inocência de {suspectName}, desmascare a farsa forjada pelo Tabelião Prado e encontre os papéis originais.",
-                Role = "Escrevente Notarial • Cartório Central",
-                Personality = "Honesto, metódico e chocado com a calúnia pública contra sua reputação.",
-                Accomplice = "Tabelião Prado",
-                HiddenPlace = "na caixa postal 42 da agência central dos correios",
-                HiddenObj = "as escrituras de herança autênticas",
-                WeakPoint = "sua mãe idosa dona Cecília",
-                WeakKeywords = new[] { "mãe", "mae", "cecília", "cecilia", "idosa", "família", "proteção" },
-                Clue1Title = "Chave Cópia do Cofre Notarial",
+                TitleSeed = "A ArmaÃ§Ã£o no CartÃ³rio Central",
+                Context = "O cofre blindado de escrituras do CartÃ³rio foi saqueado e documentos de heranÃ§a sumiram. Documentos comprometedores foram plantados na bolsa do suspeito.",
+                Objective = $"Comprove a inocÃªncia de {suspectName}, desmascare a farsa forjada pelo TabeliÃ£o Prado e encontre os papÃ©is originais.",
+                Role = "Escrevente Notarial â€¢ CartÃ³rio Central",
+                Personality = "Honesto, metÃ³dico e chocado com a calÃºnia pÃºblica contra sua reputaÃ§Ã£o.",
+                Accomplice = "TabeliÃ£o Prado",
+                HiddenPlace = "na caixa postal 42 da agÃªncia central dos correios",
+                HiddenObj = "as escrituras de heranÃ§a autÃªnticas",
+                WeakPoint = "sua mÃ£e idosa dona CecÃ­lia",
+                WeakKeywords = new[] { "mÃ£e", "mae", "cecÃ­lia", "cecilia", "idosa", "famÃ­lia", "proteÃ§Ã£o" },
+                Clue1Title = "Chave CÃ³pia do Cofre Notarial",
                 Clue1Desc = $"A chave da sala forte foi encontrada dentro da pasta de couro de {suspectName}.",
-                Clue1Excuse = "Aquela chave foi plantada! Deixei minha pasta na recepção enquanto fui almoçar!",
-                Clue1Adm = "O próprio Tabelião Prado pediu minha pasta ontem dizendo que ia guardar selos e plantou a chave!",
+                Clue1Excuse = "Aquela chave foi plantada! Deixei minha pasta na recepÃ§Ã£o enquanto fui almoÃ§ar!",
+                Clue1Adm = "O prÃ³prio TabeliÃ£o Prado pediu minha pasta ontem dizendo que ia guardar selos e plantou a chave!",
                 Clue2Title = "Envelope com Carimbo Pessoal",
-                Clue2Desc = "Um envelope timbrado usado no furto levava o carimbo numérico do suspeito.",
-                Clue2Excuse = "Meu carimbo fica sobre a mesa ao alcance de qualquer visitante ou estagiário do cartório.",
-                Clue2Adm = "Prado usou meu carimbo no escuro após as 18h para simular que eu tinha despachado a pasta!",
-                Clue3Title = "Canhoto de Ponto Batido às 21h",
-                Clue3Desc = "O cartão de ponto marcava presença do suspeito no prédio na hora exata do arrombamento.",
-                Clue3Excuse = "Eu estava no culto da igreja às 21h diante de dezenas de testemunhas! Alguém bateu meu cartão!",
-                Clue3Adm = "Foi o comparsa de Prado que bateu meu cartão na catraca para forjar meu álibi falso e me incriminar!",
+                Clue2Desc = "Um envelope timbrado usado no furto levava o carimbo numÃ©rico do suspeito.",
+                Clue2Excuse = "Meu carimbo fica sobre a mesa ao alcance de qualquer visitante ou estagiÃ¡rio do cartÃ³rio.",
+                Clue2Adm = "Prado usou meu carimbo no escuro apÃ³s as 18h para simular que eu tinha despachado a pasta!",
+                Clue3Title = "Canhoto de Ponto Batido Ã s 21h",
+                Clue3Desc = "O cartÃ£o de ponto marcava presenÃ§a do suspeito no prÃ©dio na hora exata do arrombamento.",
+                Clue3Excuse = "Eu estava no culto da igreja Ã s 21h diante de dezenas de testemunhas! AlguÃ©m bateu meu cartÃ£o!",
+                Clue3Adm = "Foi o comparsa de Prado que bateu meu cartÃ£o na catraca para forjar meu Ã¡libi falso e me incriminar!",
                 Clue4Title = "Chancela de Cera Falsificada",
-                Clue4Desc = "Um selo de cera com imperfeições usado para lacrar gavetas que não correspondia ao molde oficial do suspeito.",
-                Clue4Excuse = "Essa chancela nunca foi minha! Vejam os traços irregulares gravados nela!",
+                Clue4Desc = "Um selo de cera com imperfeiÃ§Ãµes usado para lacrar gavetas que nÃ£o correspondia ao molde oficial do suspeito.",
+                Clue4Excuse = "Essa chancela nunca foi minha! Vejam os traÃ§os irregulares gravados nela!",
                 Clue4Adm = "Prado mandou forjar essa chancela em um ourives da baixada para tentar simular minha assinatura nos lacres!"
             },
             new
             {
-                TitleSeed = "O Complô no Laboratório Metalúrgico",
-                Context = "A fórmula de uma blindagem experimental foi roubada e o cofre de patentes foi arrombado. Vestígios químicos foram deixados no armário do suspeito.",
-                Objective = $"Comprove a inocência de {suspectName}, desarme a conspiração do Diretor Fontana e descubra onde a fórmula está escondida.",
-                Role = "Assistente Químico • Fundição Industrial",
-                Personality = "Trabalhador pacato, assustado com os métodos agressivos dos investigadores.",
+                TitleSeed = "O ComplÃ´ no LaboratÃ³rio MetalÃºrgico",
+                Context = "A fÃ³rmula de uma blindagem experimental foi roubada e o cofre de patentes foi arrombado. VestÃ­gios quÃ­micos foram deixados no armÃ¡rio do suspeito.",
+                Objective = $"Comprove a inocÃªncia de {suspectName}, desarme a conspiraÃ§Ã£o do Diretor Fontana e descubra onde a fÃ³rmula estÃ¡ escondida.",
+                Role = "Assistente QuÃ­mico â€¢ FundiÃ§Ã£o Industrial",
+                Personality = "Trabalhador pacato, assustado com os mÃ©todos agressivos dos investigadores.",
                 Accomplice = "Diretor Fontana",
-                HiddenPlace = "dentro do cilindro de nitrogênio inativo da caldeira",
-                HiddenObj = "o tubo de ensaio com a fórmula original",
-                WeakPoint = "sua filha recém-nascida Clara",
-                WeakKeywords = new[] { "filha", "clara", "bebê", "bebe", "família", "salvar", "berço" },
+                HiddenPlace = "dentro do cilindro de nitrogÃªnio inativo da caldeira",
+                HiddenObj = "o tubo de ensaio com a fÃ³rmula original",
+                WeakPoint = "sua filha recÃ©m-nascida Clara",
+                WeakKeywords = new[] { "filha", "clara", "bebÃª", "bebe", "famÃ­lia", "salvar", "berÃ§o" },
                 Clue1Title = "Jaleco Salpicado de Reagente",
-                Clue1Desc = "O jaleco de trabalho do suspeito continha gotas da solução fosforescente do cofre.",
-                Clue1Excuse = "Meu armário foi arrombado durante a noite e meu jaleco foi trocado pelo de outro turno!",
+                Clue1Desc = "O jaleco de trabalho do suspeito continha gotas da soluÃ§Ã£o fosforescente do cofre.",
+                Clue1Excuse = "Meu armÃ¡rio foi arrombado durante a noite e meu jaleco foi trocado pelo de outro turno!",
                 Clue1Adm = "Fontana pegou meu jaleco emprestado fingindo que o dele tinha rasgado na esteira!",
-                Clue2Title = "Credencial Magnética Registrada",
-                Clue2Desc = "O sistema eletrônico registrou o crachá do suspeito destravando a porta às 01h15.",
-                Clue2Excuse = "Perdi meu crachá no refeitório ao meio-dia e avisei a chefia imediatamente!",
-                Clue2Adm = "Fontana achou meu crachá e usou às pressas na madrugada para que as câmeras culpassem a mim!",
-                Clue3Title = "Frasco de Ácido Corrosivo",
-                Clue3Desc = "Um frasco de ácido usado para derreter a fechadura foi achado embaixo da bancada do suspeito.",
-                Clue3Excuse = "Aquele ácido é de uso geral da manutenção pesada da fábrica, qualquer técnico tem acesso.",
+                Clue2Title = "Credencial MagnÃ©tica Registrada",
+                Clue2Desc = "O sistema eletrÃ´nico registrou o crachÃ¡ do suspeito destravando a porta Ã s 01h15.",
+                Clue2Excuse = "Perdi meu crachÃ¡ no refeitÃ³rio ao meio-dia e avisei a chefia imediatamente!",
+                Clue2Adm = "Fontana achou meu crachÃ¡ e usou Ã s pressas na madrugada para que as cÃ¢meras culpassem a mim!",
+                Clue3Title = "Frasco de Ãcido Corrosivo",
+                Clue3Desc = "Um frasco de Ã¡cido usado para derreter a fechadura foi achado embaixo da bancada do suspeito.",
+                Clue3Excuse = "Aquele Ã¡cido Ã© de uso geral da manutenÃ§Ã£o pesada da fÃ¡brica, qualquer tÃ©cnico tem acesso.",
                 Clue3Adm = "O capanga de Fontana colocou aquele frasco ali enquanto eu estava prestando os primeiros socorros ao vigia!",
-                Clue4Title = "Registro de Pressão Adulterado",
+                Clue4Title = "Registro de PressÃ£o Adulterado",
                 Clue4Desc = "Uma folha de registro do painel da caldeira com a caligrafia do suspeito simulada de forma grosseira.",
-                Clue4Excuse = "Não fui eu quem preencheu esses dados de pressão, a caneta usada nem é a padrão do meu setor!",
-                Clue4Adm = "Fontana tentou falsificar minhas anotações na caldeira para fingir que eu sabotei a pressão propositalmente!"
+                Clue4Excuse = "NÃ£o fui eu quem preencheu esses dados de pressÃ£o, a caneta usada nem Ã© a padrÃ£o do meu setor!",
+                Clue4Adm = "Fontana tentou falsificar minhas anotaÃ§Ãµes na caldeira para fingir que eu sabotei a pressÃ£o propositalmente!"
+            },
+            new
+            {
+                TitleSeed = "A Armadilha na Casa de CÃ¢mbio",
+                Context = "Cinquenta mil dÃ³lares em espÃ©cie sumiram do cofre blindado da agÃªncia de cÃ¢mbio durante a noite. Chaves duplicadas e notas marcadas foram colocadas no armÃ¡rio do suspeito.",
+                Objective = $"Comprove a inocÃªncia de {suspectName}, desmonte a farsa armada pelo Gerente Peixoto e encontre o dinheiro verdadeiro.",
+                Role = "Caixa BancÃ¡rio â€¢ CÃ¢mbio AtlÃ¢ntica",
+                Personality = "MetÃ³dico, pontual e apavorado com a prisÃ£o injusta, pai de famÃ­lia dedicado.",
+                Accomplice = "Gerente Peixoto",
+                HiddenPlace = "no forro de gesso da sala da gerÃªncia",
+                HiddenObj = "o malote com as cÃ©dulas verdadeiras de dÃ³lar",
+                WeakPoint = "seu irmÃ£o acamado Gabriel",
+                WeakKeywords = new[] { "irmÃ£o", "irmao", "gabriel", "acamado", "doente", "famÃ­lia", "hospital" },
+                Clue1Title = "Falso Boleto de DepÃ³sito com Assinatura Falsificada",
+                Clue1Desc = "Um comprovante de entrada com a rubrica do suspeito simulada de maneira grosseira.",
+                Clue1Excuse = "Aquela assinatura nÃ£o Ã© minha! O traÃ§o da letra Ã© trÃªmulo e a tinta nem Ã© a da minha caneta!",
+                Clue1Adm = "O prÃ³prio Gerente Peixoto recolheu meus carimbos ontem dizendo que ia conferir a auditoria!",
+                Clue2Title = "Gaveta do Caixa Destrancada com Chave MichÃª",
+                Clue2Desc = "A fechadura do guichÃª 2 tinha marcas de lima e estrias de arrombamento forÃ§ado.",
+                Clue2Excuse = "Eu entreguei a chave mestra no cofre ao sair Ã s 17h, como faÃ§o rigorosamente todos os dias.",
+                Clue2Adm = "Peixoto ficou atÃ© depois das oito da noite sozinho na agÃªncia fingindo fechar o balanÃ§o!",
+                Clue3Title = "Bilhete de Fuga Plantado no VestiÃ¡rio",
+                Clue3Desc = "Um bilhete de passagem de Ã´nibus para a fronteira achado dentro da bolsa do suspeito.",
+                Clue3Excuse = "Nunca comprei passagem para lugar nenhum, tenho um irmÃ£o doente que precisa de mim aqui!",
+                Clue3Adm = "O comparsa de Peixoto colocou essa passagem na minha bolsa enquanto fui ao banheiro!",
+                Clue4Title = "Fita de MÃ¡quina Somadora Adulterada",
+                Clue4Desc = "A fita de papel da contabilidade com o total do caixa adulterado para simular o desfalque.",
+                Clue4Excuse = "O total bateu certinho Ã s cinco da tarde diante do fiscal de balcÃ£o!",
+                Clue4Adm = "Peixoto passou a fita novamente Ã  noite alterando os dÃ­gitos da coluna de crÃ©dito!"
+            },
+            new
+            {
+                TitleSeed = "A CalÃºnia no DepÃ³sito PortuÃ¡rio",
+                Context = "Um carregamento de armamentos pesados da alfÃ¢ndega foi violado no porto e o selo de vistoria do suspeito foi encontrado rompido.",
+                Objective = $"Comprove a inocÃªncia de {suspectName}, desmascare a corrupÃ§Ã£o do Despachante Nogueira e recupere o manifesto autÃªntico.",
+                Role = "Conferente de Carga â€¢ Doca 14",
+                Personality = "Trabalhador honrado, calejado pelo cais, mas teme perder o sustento de sua famÃ­lia.",
+                Accomplice = "Despachante Nogueira",
+                HiddenPlace = "dentro do contÃªiner marÃ­timo falso nÂº 88",
+                HiddenObj = "o manifesto de carga original sem adulteraÃ§Ã£o",
+                WeakPoint = "sua filha adolescente Elisa",
+                WeakKeywords = new[] { "filha", "elisa", "menina", "escola", "famÃ­lia", "proteÃ§Ã£o" },
+                Clue1Title = "Lacre de ContÃªiner Violado com Alicate do Suspeito",
+                Clue1Desc = "Um lacre de aÃ§o quebrado com ranhuras coincidentes com o alicate da guarita do suspeito.",
+                Clue1Excuse = "Aquele alicate fica preso num gancho na guarita, dezenas de estivadores usam para abrir caixotes.",
+                Clue1Adm = "Nogueira pegou o alicate emprestado Ã s 23h dizendo que precisava abrir uma caixa de cafÃ©!",
+                Clue2Title = "Manifesto de ImportaÃ§Ã£o com Carimbo Plantado",
+                Clue2Desc = "A folha de liberaÃ§Ã£o aduaneira timbrada com a chancela de conferÃªncia de carga.",
+                Clue2Excuse = "Aquele carimbo foi furtado da minha prancheta durante o tumulto da atracaÃ§Ã£o do navio.",
+                Clue2Adm = "O carimbo foi batido na folha fria pelos capangas de Nogueira para culpar a conferÃªncia!",
+                Clue3Title = "Chave do GalpÃ£o 5 Achada na Gaveta do Suspeito",
+                Clue3Desc = "A chave de ferro do depÃ³sito secreto onde o arsenal foi descarregado.",
+                Clue3Excuse = "AlguÃ©m abriu a gaveta da minha mesa no vestiÃ¡rio geral durante o intervalo da janta.",
+                Clue3Adm = "Foi Nogueira quem plantou a chave ali enquanto os conferentes estavam no refeitÃ³rio!",
+                Clue4Title = "Prancheta de Vistoria com Letra Falsificada",
+                Clue4Desc = "A anotaÃ§Ã£o de 'carga inspecionada' grafada imitando a letra do suspeito.",
+                Clue4Excuse = "Eu assino com caneta tinteiro azul escura, aquilo ali foi feito com lÃ¡pis cÃ³pia comum!",
+                Clue4Adm = "Nogueira tentou simular minhas anotaÃ§Ãµes para fingir que eu dei o visto nas armas!"
+            },
+            new
+            {
+                TitleSeed = "O Flagrante Forjado na Tipografia",
+                Context = "Panfletos clandestinos atacando o governo foram encontrados na prensa e placas de linotipo com calÃºnia foram atribuÃ­das ao suspeito.",
+                Objective = $"Comprove a inocÃªncia de {suspectName}, revele a armadilha armada pelo ProprietÃ¡rio Valadares e ache as matrizes originais.",
+                Role = "Impressor GrÃ¡fico â€¢ GrÃ¡fica Progresso",
+                Personality = "PacÃ­fico, artesÃ£o apaixonado pelas letras, desolado com a acusaÃ§Ã£o polÃ­tica caluniosa.",
+                Accomplice = "ProprietÃ¡rio Valadares",
+                HiddenPlace = "embaixo do assoalho da oficina de encadernaÃ§Ã£o",
+                HiddenObj = "as matrizes de impressÃ£o originais do panfleto",
+                WeakPoint = "sua mÃ£e costureira dona Helena",
+                WeakKeywords = new[] { "mÃ£e", "mae", "helena", "idosa", "famÃ­lia", "costureira" },
+                Clue1Title = "Folha de Prova com Tinta nas MÃ£os do Suspeito",
+                Clue1Desc = "ResÃ­duos de tinta grÃ¡fica preta nas pontas dos dedos e uma folha teste do manifesto no chÃ£o.",
+                Clue1Excuse = "Trabalhei doze horas imprimindo livros escolares, minhas mÃ£os ficam sujas de tinta preta todo dia!",
+                Clue1Adm = "Valadares me mandou limpar a prensa de madrugada para que meus dedos ficassem manchados daquela tinta!",
+                Clue2Title = "Tipos MÃ³veis de Chumbo Encontrados na Mochila",
+                Clue2Desc = "Letras de chumbo que formavam o tÃ­tulo subversivo achadas dentro da mochila do suspeito.",
+                Clue2Excuse = "Minha mochila ficou pendurada atrÃ¡s da porta do vestiÃ¡rio aberta o dia inteiro.",
+                Clue2Adm = "O prÃ³prio Valadares colocou os tipos de chumbo ali antes de ligar para a polÃ­cia polÃ­tica!",
+                Clue3Title = "Ordem de ServiÃ§o Datilografada no Nome do Suspeito",
+                Clue3Desc = "Um pedido de tiragem irregular assinado em nome do impressor.",
+                Clue3Excuse = "Eu nÃ£o tenho autoridade administrativa para abrir ordem de serviÃ§o, sÃ³ o dono pode autorizar!",
+                Clue3Adm = "Valadares usou a mÃ¡quina de escrever do balcÃ£o para forjar o pedido em meu nome!",
+                Clue4Title = "Chave da Prensa de Tipografia Duplicada",
+                Clue4Desc = "A chave de partida do motor elÃ©trico da mÃ¡quina rotativa encontrada no bolso do casaco.",
+                Clue4Excuse = "O casaco era da empresa e fica no armÃ¡rio compartilhado da manutenÃ§Ã£o pesada.",
+                Clue4Adm = "Valadares me deu aquele casaco de presente ontem Ã  tarde... jÃ¡ estava com a chave no bolso!"
             }
         };
 
@@ -1329,23 +978,23 @@ public static class ProceduralCaseGenerator
                 NpcRole = arch.Role,
                 NpcPersonality = arch.Personality,
                 IsGuilty = false,
-                SecretTruth = $"{suspectName} é completamente inocente e foi vítima de uma armadilha calculada por {arch.Accomplice}. A prova definitiva ({arch.HiddenObj}) está {arch.HiddenPlace}.",
-                OpeningGmNarration = $"A luz solitária ilumina o rosto pálido de {suspectName}. Seus olhos expressam o terror genuíno de um cidadão honesto arrastado para um pesadelo.",
-                OpeningNpcDialogue = $"\"Detetive, pelo amor de Deus, eu sou inocente! Eu nunca roubei nada na minha vida! Estão armando contra mim para proteger peixe grande desta cidade!\"",
-                AlibiSpeech = "Eu estava longe dali cumprindo minhas obrigações e tenho testemunhas sérias que podem comprovar minha conduta ilibada!",
-                EmpathyEarlySpeech = "Obrigado por me dar a chance de falar sem me condenar antes da hora, detetive... você é a primeira pessoa nesta delegacia que parece querer a verdade.",
-                EarlyWhoWhereSpeech = $"Quem armou essa cilada é influente demais... o {arch.Accomplice} sabia cada passo da minha rotina e tinha as chaves necessárias!",
+                SecretTruth = $"{suspectName} Ã© completamente inocente e foi vÃ­tima de uma armadilha calculada por {arch.Accomplice}. A prova definitiva ({arch.HiddenObj}) estÃ¡ {arch.HiddenPlace}.",
+                OpeningGmNarration = $"A luz solitÃ¡ria ilumina o rosto pÃ¡lido de {suspectName}. Seus olhos expressam o terror genuÃ­no de um cidadÃ£o honesto arrastado para um pesadelo.",
+                OpeningNpcDialogue = $"\"Detetive, pelo amor de Deus, eu sou inocente! Eu nunca roubei nada na minha vida! EstÃ£o armando contra mim para proteger peixe grande desta cidade!\"",
+                AlibiSpeech = "Eu estava longe dali cumprindo minhas obrigaÃ§Ãµes e tenho testemunhas sÃ©rias que podem comprovar minha conduta ilibada!",
+                EmpathyEarlySpeech = "Obrigado por me dar a chance de falar sem me condenar antes da hora, detetive... vocÃª Ã© a primeira pessoa nesta delegacia que parece querer a verdade.",
+                EarlyWhoWhereSpeech = $"Quem armou essa cilada Ã© influente demais... o {arch.Accomplice} sabia cada passo da minha rotina e tinha as chaves necessÃ¡rias!",
                 WeakPointLabel = arch.WeakPoint,
                 WeakPointKeywords = arch.WeakKeywords,
-                WeakPointReactionSpeech = $"Deixem {arch.WeakPoint} fora desse pesadelo! Eu conto o que sei: foi {arch.Accomplice} quem armou tudo para salvar a própria pele!",
-                ConfessionSpeech = $"A farsa foi montada por {arch.Accomplice}! Ele roubou tudo e me incriminou deliberadamente! {arch.HiddenObj} está escondido {arch.HiddenPlace}!",
-                ExonerationSpeech = $"A verdade finalmente prevaleceu! Deus abençoe seu senso de justiça, detetive! {arch.Accomplice} vai responder perante a lei e {arch.HiddenObj} está {arch.HiddenPlace}!",
+                WeakPointReactionSpeech = $"Deixem {arch.WeakPoint} fora desse pesadelo! Eu conto o que sei: foi {arch.Accomplice} quem armou tudo para salvar a prÃ³pria pele!",
+                ConfessionSpeech = $"A farsa foi montada por {arch.Accomplice}! Ele roubou tudo e me incriminou deliberadamente! {arch.HiddenObj} estÃ¡ escondido {arch.HiddenPlace}!",
+                ExonerationSpeech = $"A verdade finalmente prevaleceu! Deus abenÃ§oe seu senso de justiÃ§a, detetive! {arch.Accomplice} vai responder perante a lei e {arch.HiddenObj} estÃ¡ {arch.HiddenPlace}!",
                 KeyAccompliceWord = arch.Accomplice,
                 KeyConfessionWord = arch.HiddenPlace.Split(' ').Last(),
                 HiddenObjectLabel = arch.HiddenObj,
-                BonusClueTitle = $"Armação de {arch.Accomplice}",
-                BonusClueDescription = $"{suspectName} demonstrou que {arch.Accomplice} forjou as evidências e o usou como bode expiatório.",
-                BonusClueKeywords = new[] { arch.Accomplice.ToLowerInvariant(), "armação", "armacao", "farsa", "bode" },
+                BonusClueTitle = $"ArmaÃ§Ã£o de {arch.Accomplice}",
+                BonusClueDescription = $"{suspectName} demonstrou que {arch.Accomplice} forjou as evidÃªncias e o usou como bode expiatÃ³rio.",
+                BonusClueKeywords = new[] { arch.Accomplice.ToLowerInvariant(), "armaÃ§Ã£o", "armacao", "farsa", "bode" },
                 Clues = new[]
                 {
                     new ClueBlueprint
@@ -1397,22 +1046,22 @@ public static class ProceduralCaseGenerator
                 NpcRole = arch.Role,
                 NpcPersonality = arch.Personality,
                 IsGuilty = true,
-                SecretTruth = $"{arch.Accomplice} forçou {suspectName} a participar do crime. O objeto ({arch.HiddenObj}) está escondido {arch.HiddenPlace}.",
-                OpeningGmNarration = $"A lâmpada amarelada oscila sobre a mesa metálica. {suspectName} puxa o ar com esforço, os olhos inquietos varrendo as sombras da sala de interrogatório.",
-                OpeningNpcDialogue = $"\"Eu já prestei meu depoimento aos guardas, detetive. Cumpri meu dever profissional e não tenho nada a ver com essa desgraça. Se querem um culpado, procurem nas ruas da máfia.\"",
-                AlibiSpeech = "Eu estava no meu posto de trabalho cumprindo as tarefas normais até o encerramento do expediente, sem qualquer desvio de conduta.",
-                EmpathyEarlySpeech = "Ninguém quer ver desgraça acontecer, detetive... mas há forças nesta cidade com as quais um trabalhador comum não pode bater de frente.",
-                EarlyWhoWhereSpeech = $"Se eu pronunciar o nome de quem realmente mandou fazer isso sem uma escolta na minha porta, minha vida não vale dez tostões amanhã.",
+                SecretTruth = $"{arch.Accomplice} forÃ§ou {suspectName} a participar do crime. O objeto ({arch.HiddenObj}) estÃ¡ escondido {arch.HiddenPlace}.",
+                OpeningGmNarration = $"A lÃ¢mpada amarelada oscila sobre a mesa metÃ¡lica. {suspectName} puxa o ar com esforÃ§o, os olhos inquietos varrendo as sombras da sala de interrogatÃ³rio.",
+                OpeningNpcDialogue = $"\"Eu jÃ¡ prestei meu depoimento aos guardas, detetive. Cumpri meu dever profissional e nÃ£o tenho nada a ver com essa desgraÃ§a. Se querem um culpado, procurem nas ruas da mÃ¡fia.\"",
+                AlibiSpeech = "Eu estava no meu posto de trabalho cumprindo as tarefas normais atÃ© o encerramento do expediente, sem qualquer desvio de conduta.",
+                EmpathyEarlySpeech = "NinguÃ©m quer ver desgraÃ§a acontecer, detetive... mas hÃ¡ forÃ§as nesta cidade com as quais um trabalhador comum nÃ£o pode bater de frente.",
+                EarlyWhoWhereSpeech = $"Se eu pronunciar o nome de quem realmente mandou fazer isso sem uma escolta na minha porta, minha vida nÃ£o vale dez tostÃµes amanhÃ£.",
                 WeakPointLabel = arch.WeakPoint,
                 WeakPointKeywords = arch.WeakKeywords,
                 WeakPointReactionSpeech = $"Deixem {arch.WeakPoint} em paz! Eu conto: foi o {arch.Accomplice} quem armou tudo e me colocou entre a cruz e a espada!",
-                ConfessionSpeech = $"Eu confesso tudo! O {arch.Accomplice} foi o mandante e me obrigou a participar. {arch.HiddenObj} está escondido {arch.HiddenPlace}!",
+                ConfessionSpeech = $"Eu confesso tudo! O {arch.Accomplice} foi o mandante e me obrigou a participar. {arch.HiddenObj} estÃ¡ escondido {arch.HiddenPlace}!",
                 KeyAccompliceWord = arch.Accomplice,
                 KeyConfessionWord = arch.HiddenPlace.Split(' ').Last(),
                 HiddenObjectLabel = arch.HiddenObj,
                 BonusClueTitle = $"Mandado de {arch.Accomplice}",
-                BonusClueDescription = $"{suspectName} admitiu que {arch.Accomplice} ordenou o crime e coagiu sua cooperação.",
-                BonusClueKeywords = new[] { arch.Accomplice.ToLowerInvariant(), "ordem", "mandante", "coação" },
+                BonusClueDescription = $"{suspectName} admitiu que {arch.Accomplice} ordenou o crime e coagiu sua cooperaÃ§Ã£o.",
+                BonusClueKeywords = new[] { arch.Accomplice.ToLowerInvariant(), "ordem", "mandante", "coaÃ§Ã£o" },
                 Clues = new[]
                 {
                     new ClueBlueprint

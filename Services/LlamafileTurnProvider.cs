@@ -543,17 +543,12 @@ public class LlamafileTurnProvider : ILlmTurnProvider, IDisposable
 
     private NoirCaseBlueprint FindBlueprintForState(InterrogationState state)
     {
-        if (_activeBlueprint != null &&
-            state.NpcName.Equals(_activeBlueprint.NpcName, StringComparison.OrdinalIgnoreCase))
-        {
+        if (_activeBlueprint != null)
             return _activeBlueprint;
-        }
 
-        var match = ProceduralCaseGenerator.BaseBlueprints.FirstOrDefault(b =>
-            state.NpcName.Contains(b.NpcName, StringComparison.OrdinalIgnoreCase) ||
-            state.CaseTitle.Contains(b.Title, StringComparison.OrdinalIgnoreCase));
-
-        return match ?? (_activeBlueprint ?? ProceduralCaseGenerator.BaseBlueprints[0]);
+        var (bp, _) = ProceduralCaseGenerator.GetUniqueBlueprint();
+        _activeBlueprint = bp;
+        return bp;
     }
 
     private static TurnPlan AnalyzePlayerTurn(InterrogationState state, NoirCaseBlueprint bp, string playerInput)

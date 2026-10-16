@@ -534,92 +534,21 @@ public class InterrogationState
 
     public void ResetCase()
     {
-        ApplyGeneratedCase(new LlmGeneratedCase
-        {
-            CaseTitle = "CASO #409: O Roubo do Núcleo Quântico",
-            CaseObjective = "OBJETIVO: Descubra onde está o Núcleo Quântico antes do Turno 10 sem deixar a Pressão atingir 100%.",
-            NpcName = "Dr. Viktor Vance",
-            NpcRole = "Engenheiro-Chefe de Segurança • Laboratório Aegis",
-            NpcPersonality = "Intelectual, orgulhoso, tenta manter a calma técnica, mas é vulnerável quando o assunto é sua filha Clara.",
-            SecretTruth = "Viktor usou seu crachá às 02:14 para destravar a primeira porta porque o Diretor Marcus Vane pagou 50 mil créditos para o tratamento de Clara (filha de Viktor). O Núcleo está escondido no Contêiner Criogênico 04 do subsolo.",
-            Appearance = new NpcAppearance
-            {
-                SkinTone = "clara",
-                HairColor = "grisalho",
-                HairStyle = "curto",
-                OutfitStyle = "jaleco",
-                HasGlasses = true,
-                HasBeard = false
-            },
-            InitialClues = new List<ClueItem>
-            {
-                new() { Title = "Crachá usado às 02:14", Description = "O crachá do Dr. Vance destravou o cofre principal às 02:14 da madrugada." },
-                new() { Title = "Câmeras em Loop", Description = "As câmeras do setor B foram colocadas em loop usando um terminal interno." },
-                new() { Title = "Transferência Suspeita", Description = "Uma conta ligada à clínica onde a filha de Vance está internada recebeu 50 mil créditos ontem." },
-                new() { Title = "Frasco de Anestésico", Description = "Um frasco de sedativo hospitalar com dosagem adulterada encontrado nos fundos do laboratório." }
-            },
-            OpeningGmNarration = "A luz fria da sala de interrogatório reflete nos óculos de Viktor Vance. Ele mantém as mãos entrelaçadas sobre a mesa de metal, tentando parecer no controle, mas seus dedos batem levemente no próprio pulso.",
-            OpeningNpcDialogue = "\"Olha, detetive... eu já disse aos guardas. Eu saí do laboratório às 21h. Se meu crachá foi registrado às duas da manhã, o sistema de vocês falhou ou alguém clonou minha credencial. Vamos acabar logo com isso.\"",
-            DialogueTree = new List<DialogueOption>
-            {
-                new()
-                {
-                    Id = "vance_badge",
-                    Category = "Confronto",
-                    Tag = "[CONFRONTO • CRACHÁ]",
-                    PlayerDialogue = "Dr. Vance, o registro eletrônico é infalível: seu crachá destravou o cofre às 02:14. Como explica estar lá nesse horário?",
-                    GmNarration = "Vance ajeita os óculos nervosamente e pigarreia antes de responder, evitando contato visual.",
-                    NpcDialogue = "\"Alguém clonou meu código magnético ou furtou meu crachá enquanto eu estava no refeitório! Eu saí às nove!\"",
-                    NpcEmotion = EmotionalState.Defensivo,
-                    TrustDelta = -5,
-                    StressDelta = 15,
-                    ProgressDelta = 15
-                },
-                new()
-                {
-                    Id = "vance_clara",
-                    Category = "Empatia",
-                    Tag = "[EMPATIA • FAMÍLIA]",
-                    PlayerDialogue = "Viktor, nós sabemos sobre o tratamento experimental da Clara na clínica. Você fez isso para salvar sua filha?",
-                    GmNarration = "O olhar arrogante de Vance se desfaz em choque e desespero genuíno. Seus olhos marejam.",
-                    NpcDialogue = "\"Não coloquem a Clara nisso! Ela é só uma criança... eu não tinha como pagar o tratamento! Me garantam que a clínica continuará recebendo o suporte!\"",
-                    NpcEmotion = EmotionalState.Cooperativo,
-                    TrustDelta = 25,
-                    StressDelta = -10,
-                    ProgressDelta = 30,
-                    NewClueTitle = "Coação por Tratamento Médico",
-                    NewClueDescription = "Viktor agiu motivado pelo desespero financeiro da doença de sua filha Clara."
-                },
-                new()
-                {
-                    Id = "vance_cameras",
-                    Category = "Pressao",
-                    Tag = "[PRESSÃO • CÂMERAS]",
-                    PlayerDialogue = "As câmeras foram colocadas em loop a partir do seu próprio terminal! Você planejou cada detalhe desse roubo!",
-                    GmNarration = "Vance bate com a palma na mesa e eleva a voz, o monitor de batimentos cardíacos sobe abruptamente.",
-                    NpcDialogue = "\"Eu sou o engenheiro-chefe! Qualquer técnico com acesso nível 3 poderia ter invadido meu terminal durante a madrugada!\"",
-                    NpcEmotion = EmotionalState.Hostil,
-                    TrustDelta = -10,
-                    StressDelta = 25,
-                    ProgressDelta = 15
-                },
-                new()
-                {
-                    Id = "vance_confess",
-                    Category = "Revelacao",
-                    Tag = "[REVELAÇÃO • CONFISSÃO]",
-                    PlayerDialogue = "Entregue o Marcus Vane e me diga onde está o Núcleo Quântico antes que seja tarde demais para a sua filha.",
-                    GmNarration = "Viktor apoia a testa nas mãos e desmonta completamente a postura de superioridade.",
-                    NpcDialogue = "\"Tudo bem... foi o Diretor Marcus Vane! Ele pagou os 50 mil créditos e eu guardei o Núcleo no Contêiner Criogênico 04 do subsolo!\"",
-                    NpcEmotion = EmotionalState.Cooperativo,
-                    TrustDelta = 30,
-                    StressDelta = -15,
-                    ProgressDelta = 45,
-                    RequiredMinProgress = 40,
-                    NewClueTitle = "Núcleo no Contêiner 04",
-                    NewClueDescription = "O Núcleo Quântico roubado foi escondido no Contêiner Criogênico 04 do subsolo."
-                }
-            }
-        });
+        History.Clear();
+        TurnRecords.Clear();
+        Clues.Clear();
+        DialogueTree.Clear();
+        QuickSuggestions.Clear();
+        CurrentTurn = 1;
+        Trust = 30;
+        Stress = 20;
+        CaseProgress = 0;
+        Emotion = EmotionalState.Calmo;
+        Outcome = GameOutcome.EmAndamento;
+        CaseTitle = "ABRINDO NOVO INQUÉRITO FORENSE...";
+        CaseObjective = "Consultando arquivos confidenciais do departamento...";
+        NpcName = "Convocando Suspeito...";
+        NpcRole = "Verificando antecedentes criminais...";
+        SecretTruth = string.Empty;
     }
 }
