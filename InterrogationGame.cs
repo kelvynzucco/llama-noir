@@ -333,6 +333,9 @@ public class InterrogationGame : Game
                 {
                     if (rect.Contains(mp))
                     {
+                        if (clue.IsUsed)
+                            break;
+
                         clue.IsNew = false;
                         if (ReferenceEquals(_selectedClue, clue))
                             _selectedClue = null;
@@ -426,6 +429,7 @@ public class InterrogationGame : Game
 
         if (attachedClue != null)
         {
+            attachedClue.IsUsed = true;
             bool isCompatible = option.IsClueCompatible(attachedClue);
             if (isCompatible)
             {
@@ -1047,15 +1051,21 @@ public class InterrogationGame : Game
                 int col = i % 2;
                 int row = i / 2;
                 var cardRect = new Rectangle(cluesPanel.X + padX + col * (cardW + gapX), startY + row * (cardH + gapY), cardW, cardH);
-                bool hovered = cardRect.Contains(_virtualMousePos);
-                bool isSelected = ReferenceEquals(clue, _selectedClue);
+                bool hovered = !clue.IsUsed && cardRect.Contains(_virtualMousePos);
+                bool isSelected = !clue.IsUsed && ReferenceEquals(clue, _selectedClue);
 
                 Color cardBg;
                 Color cardBorder;
                 Color innerBorder;
                 int borderThickness = 1;
 
-                if (isSelected)
+                if (clue.IsUsed)
+                {
+                    cardBg = new Color(14, 18, 26, 235);
+                    cardBorder = new Color(38, 48, 64);
+                    innerBorder = new Color(20, 26, 36);
+                }
+                else if (isSelected)
                 {
                     cardBg = new Color(55, 42, 18, 252);
                     cardBorder = new Color(250, 204, 21);
@@ -1078,26 +1088,45 @@ public class InterrogationGame : Game
                 DrawPanel(cardRect, cardBg, cardBorder, borderThickness, innerBorder);
 
                 // Miniatura pixelart de pasta/prova forense
-                DrawPixelEvidenceCardIcon(cardRect.X + 8, cardRect.Y + 8, isSelected ? new Color(250, 204, 21) : new Color(160, 125, 60));
+                Color iconColor = clue.IsUsed
+                    ? new Color(70, 80, 95)
+                    : (isSelected ? new Color(250, 204, 21) : new Color(160, 125, 60));
+                DrawPixelEvidenceCardIcon(cardRect.X + 8, cardRect.Y + 8, iconColor);
 
-                // Ícone de Pushpin ("pin" estilo pinado quando anexado ou preview translúcido no hover)
+                // Ícone de Pushpin ("pin" estilo pinado quando anexado) ou carimbo [UTILIZADA]
                 int pinX = cardRect.Right - 18;
                 int pinY = cardRect.Y + 6;
-                if (isSelected)
+                int maxTitleWidth;
+
+                if (clue.IsUsed)
                 {
-                    DrawPixelPushPin(pinX, pinY, new Color(239, 68, 68), true);
+                    string usedStamp = "[UTILIZADA]";
+                    var stampSz = fontTiny.MeasureString(usedStamp);
+                    int stampX = cardRect.Right - (int)stampSz.X - 10;
+                    float stampY = cardRect.Y + 8 + (24 - stampSz.Y) / 2f;
+                    _spriteBatch.DrawString(fontTiny, usedStamp, new Vector2(stampX, stampY), new Color(110, 125, 145));
+                    maxTitleWidth = (stampX - 6) - (cardRect.X + 34);
                 }
-                else if (hovered)
+                else
                 {
-                    DrawPixelPushPin(pinX, pinY, new Color(148, 163, 184) * 0.55f, false);
+                    if (isSelected)
+                    {
+                        DrawPixelPushPin(pinX, pinY, new Color(239, 68, 68), true);
+                    }
+                    else if (hovered)
+                    {
+                        DrawPixelPushPin(pinX, pinY, new Color(148, 163, 184) * 0.55f, false);
+                    }
+                    maxTitleWidth = (pinX - 6) - (cardRect.X + 34);
                 }
 
                 // Título da evidência
-                string titlePrefix = clue.IsNew ? "★ " : "";
+                string titlePrefix = (!clue.IsUsed && clue.IsNew) ? "★ " : "";
                 string titleText = $"{titlePrefix}{clue.Title}";
-                Color titleColor = isSelected ? new Color(254, 240, 138) : (clue.IsNew ? new Color(254, 240, 138) : new Color(225, 235, 252));
+                Color titleColor = clue.IsUsed
+                    ? new Color(125, 138, 155)
+                    : (isSelected ? new Color(254, 240, 138) : (clue.IsNew ? new Color(254, 240, 138) : new Color(225, 235, 252)));
 
-                int maxTitleWidth = (pinX - 6) - (cardRect.X + 34);
                 string safeTitle = TruncateText(fontSmall, titleText, maxTitleWidth);
                 var titleSz = fontSmall.MeasureString(safeTitle);
                 float titleY = cardRect.Y + 8 + (24 - titleSz.Y) / 2f;
@@ -1106,7 +1135,7 @@ public class InterrogationGame : Game
                 // Linha divisória sutil
                 int divY = cardRect.Y + 36;
                 DrawFilledRect(new Rectangle(cardRect.X + 8, divY, cardRect.Width - 16, 1),
-                    isSelected ? new Color(160, 120, 30) : new Color(38, 52, 75));
+                    clue.IsUsed ? new Color(28, 36, 48) : (isSelected ? new Color(160, 120, 30) : new Color(38, 52, 75)));
 
                 // Descrição com ajuste dinâmico ao espaço do card
                 var fDesc = fontTiny;
@@ -1119,7 +1148,8 @@ public class InterrogationGame : Game
                     fDesc = _fontSystem.GetFont(12.5f);
                     wrappedDesc = WrapText(fDesc, clue.Description, descW);
                 }
-                _spriteBatch.DrawString(fDesc, wrappedDesc, new Vector2(cardRect.X + 8, divY + 5), new Color(175, 190, 215));
+                Color descColor = clue.IsUsed ? new Color(100, 115, 135) : new Color(175, 190, 215);
+                _spriteBatch.DrawString(fDesc, wrappedDesc, new Vector2(cardRect.X + 8, divY + 5), descColor);
 
                 _clueRects.Add((cardRect, clue));
             }
@@ -1433,22 +1463,7 @@ public class InterrogationGame : Game
                 _spriteBatch.DrawString(fontSmall, badge, new Vector2(badgeRect.X + 9, badgeTextY), tagColor);
 
                 int maxTextRight = cardRect.Right - 16;
-                if (_selectedClue != null)
-                {
-                    bool isCompatible = opt.IsClueCompatible(_selectedClue);
-                    string synBadge = isCompatible ? "★ CONTUNDENTE (+)" : "⚠ DESCONEXA (-)";
-                    Color synColor = isCompatible ? new Color(52, 211, 153) : new Color(248, 113, 113);
-                    Color synBg = isCompatible ? new Color(20, 50, 35) : new Color(50, 20, 25);
 
-                    var synSize = fontSmall.MeasureString(synBadge);
-                    int synH = 32;
-                    var synRect = new Rectangle(cardRect.Right - (int)synSize.X - 18, cardRect.Y + (cardRect.Height - synH) / 2, (int)synSize.X + 14, synH);
-                    DrawPanel(synRect, synBg, synColor, 1);
-                    float synTextY = synRect.Y + (synRect.Height - synSize.Y) / 2f;
-                    _spriteBatch.DrawString(fontSmall, synBadge, new Vector2(synRect.X + 7, synTextY), synColor);
-
-                    maxTextRight = synRect.Left - 12;
-                }
 
                 string dialogueText = $"\"{opt.PlayerDialogue}\"";
                 int textStartX = badgeRect.Right + 12;

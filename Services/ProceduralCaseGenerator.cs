@@ -125,6 +125,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "envelope", "20 mil", "vinte mil", "dólares", "dolares", "dinheiro", "gaveta", "escritório" },
                     ExcuseSpeech = "Esses vinte mil dólares no envelope são apenas o faturamento das bebidas da semana no Blue Note, ainda não tive tempo de depositar no banco.",
                     AdmissionSpeech = "Aquele envelope de vinte mil dólares foi deixado na minha mesa pelo capanga de Donato Braga para comprar o meu silêncio sobre o livro-caixa!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Sapato com Barro do Beco",
+                    Description = "O calçado italiano de Moretti continha terra fresca e fuligem idênticas às marcas achadas junto ao cadáver de Soares.",
+                    Keywords = new[] { "sapato", "calçado", "calcado", "barro", "lama", "beco", "pegadas", "fuligem" },
+                    ExcuseSpeech = "Pisei naquela poça de barro quando saí para conferir as lixeiras antes de fechar o bar à meia-noite.",
+                    AdmissionSpeech = "Eu voltei ao beco às duas da manhã sim! As marcas de barro são minhas... Donato me forçou a conferir se o serviço estava feito!"
                 }
             }
         },
@@ -179,6 +187,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "recibo", "50 mil", "cinquenta mil", "sanatório", "sanatorio", "internação", "internacao", "espécie" },
                     ExcuseSpeech = "Quitei as despesas médicas da minha filha Clara com economias pessoais que eu guardava em casa há anos, não devo satisfação ao fisco aqui.",
                     AdmissionSpeech = "Eu jamais teria cinquenta mil dólares em espécie! Foi o próprio Marcus Vane quem mandou entregar essa mala de dinheiro no sanatório da minha filha!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Cópia da Chave do Portão Sul",
+                    Description = "Uma cópia recém-feita da chave do portão de serviço do Cais 14 foi encontrada no chaveiro particular de Heitor.",
+                    Keywords = new[] { "chave", "portão", "portao", "sul", "serviço", "servico", "cais", "cadeado" },
+                    ExcuseSpeech = "Como consultor jurídico do sindicato, tenho chave de todas as docas para vistorias legais.",
+                    AdmissionSpeech = "Fui eu quem destrancou o portão sul para os capangas de Vane entrarem no cais sem serem vistos pelas câmeras da guarita!"
                 }
             }
         },
@@ -233,6 +249,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "taça", "taca", "bordeaux", "veneno", "química", "adulterada", "vinho" },
                     ExcuseSpeech = "Dupont exigiu abrir a própria garrafa na mesa, qualquer pessoa que passou perto do aparador dele poderia ter tocado naquela taça.",
                     AdmissionSpeech = "Fui eu quem passou o veneno na borda interna da taça antes de levá-la ao Dupont... eu não tive escolha!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Conta-gotas com Traços Químicos",
+                    Description = "Um conta-gotas de vidro com resíduos de ácido cianídrico foi localizado escondido atrás da prateleira de licores.",
+                    Keywords = new[] { "conta-gotas", "vidro", "ácido", "cianídrico", "resíduos", "licores", "químico" },
+                    ExcuseSpeech = "Usamos conta-gotas para dosar essências de carvalho em vinhos de teste, qualquer enólogo faz isso.",
+                    AdmissionSpeech = "O conta-gotas era meu sim! Usei para pingar exatamente quatro gotas no fundo da taça sem deixar espumar!"
                 }
             }
         },
@@ -289,6 +313,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "ordem", "serviço", "manuscrita", "papel", "vitti", "bilhete" },
                     ExcuseSpeech = "Aquele bilhete foi deixado na minha guarita com a assinatura do próprio curador Lorenzo Vitti!",
                     AdmissionSpeech = "Essa ordem de serviço prova que Vitti me mandou para a emboscada no porão minutos antes do alarme tocar!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Marcas de Alavanca na Vitrine",
+                    Description = "A vitrine foi forçada com pé-de-cabra profissional pesado, incompatível com a chave de fenda de Dario.",
+                    Keywords = new[] { "marcas", "alavanca", "vitrine", "pé-de-cabra", "ferramentas", "curadoria" },
+                    ExcuseSpeech = "Minha caixa só tem chaves de fenda pequenas para fiação! A vitrine foi rebentada com ferro pesado da curadoria!",
+                    AdmissionSpeech = "O pé-de-cabra pertencia à oficina de restauro de Lorenzo Vitti! Ele mesmo arrombou a vitrine antes de me golpear!"
                 }
             }
         },
@@ -343,6 +375,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "frasco", "sedativo", "ampola", "veterinário", "veterinario", "armário", "cavalo", "veneno" },
                     ExcuseSpeech = "Aquela ampola de sedativo quebrou sozinha na prateleira semana passada durante o transporte das caixas.",
                     AdmissionSpeech = "Entreguei aquela ampola antes da largada para desacelerar o cavalo, mas o Rubens não aplicou... e usaram a seringa contra o próprio garoto!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Ferradura Adulterada com Chumbo",
+                    Description = "Uma ferradura modificada para desequilibrar o cavalo campeão foi achada escondida sob a palha da baia.",
+                    Keywords = new[] { "ferradura", "chumbo", "adulterada", "cavalo", "baia", "peso", "palha", "estábulo" },
+                    ExcuseSpeech = "Aquela ferradura velha foi descartada pelo ferrador na semana passada por estar torta.",
+                    AdmissionSpeech = "Fui eu quem colocou o chumbo na ferradura a mando do Barão, mas o Rubens percebeu e trocou antes da largada!"
                 }
             }
         },
@@ -397,6 +437,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "partitura", "ameaça", "rasgada", "enrico", "pasta", "música" },
                     ExcuseSpeech = "Enrico vivia me acusando de plágio em delírios etílicos; guardei o bilhete para abrir um processo disciplinar na diretoria.",
                     AdmissionSpeech = "Enrico tinha descoberto que registrei os arranjos dele no meu nome... ele ia me desmascarar na frente de toda a imprensa esta manhã!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Alicate Cirúrgico no Camarote",
+                    Description = "Um alicate cirúrgico de aço com marcas de pressão e dentes afiados foi localizado na lixeira privativa do maestro.",
+                    Keywords = new[] { "alicate", "cirúrgico", "cirurgico", "camarote", "aço", "cabo", "dentes" },
+                    ExcuseSpeech = "Uso aquela ferramenta para afinar as cravelhas emperradas dos instrumentos de corda da orquestra.",
+                    AdmissionSpeech = "Fui eu quem usou aquele alicate para romper os fios de sustentação antes do início do espetáculo!"
                 }
             }
         },
@@ -453,6 +501,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "nota", "fiscal", "armarinho", "canhoto", "14h05", "recibo", "álibi" },
                     ExcuseSpeech = "Olhe o horário carimbado: 14h05! O tiro soou às 14h02 enquanto eu estava no caixa da armarinho!",
                     AdmissionSpeech = "Esse recibo é a prova irrefutável de que eu estava a três quadras de distância quando Peixoto apertou o gatilho!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Coldre sob Medida no Manequim",
+                    Description = "No forro interno do manequim nº 4 havia um coldre de couro com o brasão oficial da delegacia gravado.",
+                    Keywords = new[] { "coldre", "brasão", "brasao", "manequim", "couro", "delegacia", "oficial" },
+                    ExcuseSpeech = "Eu nunca usei coldres na minha alfaiataria! Aquele coldre com brasão é de uso exclusivo de oficiais da lei!",
+                    AdmissionSpeech = "Aquele coldre pertence ao Delegado Peixoto! Foi ele quem enfiou a arma ali enquanto a loja estava vazia!"
                 }
             }
         },
@@ -507,6 +563,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "recibo", "anel", "diamantes", "25 mil", "joalheria", "dinheiro", "olívia" },
                     ExcuseSpeech = "Economizei cada centavo dos meus extras no jornal durante cinco anos para dar esse anel de noivado à mulher que amo.",
                     AdmissionSpeech = "Aquele adiantamento em dinheiro vivo foi a paga de Salazar para garantir meu silêncio na perícia do necrotério!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Chapa de Vidro Submersa no Ácido",
+                    Description = "Uma chapa de revelação com os negativos intactos do senador foi achada no fundo do tanque de lavagem ácida.",
+                    Keywords = new[] { "chapa", "vidro", "tanque", "ácida", "negativos", "senador", "submersa", "fotos" },
+                    ExcuseSpeech = "Esqueci chapas velhas mergulhadas no tanque de enxágue durante a limpeza do fim de semana.",
+                    AdmissionSpeech = "Mergulhei aquela chapa no ácido para que Salazar pensasse que destruí tudo... era a minha única garantia de vida!"
                 }
             }
         },
@@ -561,6 +625,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "chave", "cartão", "cartao", "adega", "02h45", "perfurado", "registro" },
                     ExcuseSpeech = "Desci para buscar champanhe safra especial para a mesa do cônsul e devo ter registrado o ponto por mero engano de relógio.",
                     AdmissionSpeech = "Eu abri a porta da adega às duas e quarenta e cinco porque Silveira me mandou atrair o Gastão até lá com a promessa do pagamento em dinheiro vivo!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Dados com Centro de Chumbo",
+                    Description = "No cinzeiro de cristal da sala VIP foram encontrados dados viciados com núcleo de chumbo pesado.",
+                    Keywords = new[] { "dados", "chumbo", "viciados", "núcleo", "nucleo", "roleta", "trapaça", "pesado" },
+                    ExcuseSpeech = "Esses dados são relíquias decorativas que ficam expostas no mostruário do cassino.",
+                    AdmissionSpeech = "Gastão usou esses dados viciados para quebrar a banca! Silveira não aceitou a perda e desceu armado para cobrar a conta!"
                 }
             }
         },
@@ -615,6 +687,14 @@ public static class ProceduralCaseGenerator
                     Keywords = new[] { "ampola", "lixo", "cacos", "alemão", "veneno", "botica", "selo" },
                     ExcuseSpeech = "Descartei ampolas velhas vencidas que estavam ocupando espaço nas gavetas superiores do laboratório.",
                     AdmissionSpeech = "Quebrei a ampola para fingir acidente caso a polícia fizesse vistoria de estoque logo após o velório!"
+                },
+                new ClueBlueprint
+                {
+                    Title = "Livro de Fórmulas com Rasuras",
+                    Description = "No livro oficial de controle da farmácia, a página da receita do juiz teve a dosagem apagada com ácido.",
+                    Keywords = new[] { "livro", "fórmulas", "formulas", "receitas", "rasuras", "ácido", "dosagem", "estricnina" },
+                    ExcuseSpeech = "Derramei reagente sobre o livro por acidente enquanto limpava a bancada de vidro.",
+                    AdmissionSpeech = "Eu rasurei a quantidade de estricnina no livro para que os fiscais da saúde não descobrissem a dose letal!"
                 }
             }
         }
@@ -1104,7 +1184,11 @@ public static class ProceduralCaseGenerator
                 Clue3Title = "Graxa Especial da Tranca",
                 Clue3Desc = "Vestígios de lubrificante químico militar encontrados nas unhas e punhos da camisa do suspeito.",
                 Clue3Excuse = "Limpei as engrenagens da catraca de embarque antes de encerrar o expediente da noite.",
-                Clue3Adm = "A graxa é do segredo do cofre! Cordeiro me deu o código e me mandou forçar a maçaneta interna!"
+                Clue3Adm = "A graxa é do segredo do cofre! Cordeiro me deu o código e me mandou forçar a maçaneta interna!",
+                Clue4Title = "Relógio de Bolso Amassado",
+                Clue4Desc = "O relógio do tesoureiro travado no horário exato do assalto, com fibras de uniforme de maquinista.",
+                Clue4Excuse = "O tesoureiro vivia deixando coisas no vestiário geral dos maquinistas.",
+                Clue4Adm = "Eu arranquei o relógio dele durante a luta para que ninguém soubesse o minuto exato da ação!"
             },
             new
             {
@@ -1129,7 +1213,11 @@ public static class ProceduralCaseGenerator
                 Clue3Title = "Chave da Sala de Máquinas",
                 Clue3Desc = $"A chave do depósito onde as pastas sumiram foi encontrada no bolso do casaco de {suspectName}.",
                 Clue3Excuse = "Tenho a cópia daquela chave porque guardo resmas de papel e formulários administrativos lá dentro.",
-                Clue3Adm = "Fui eu quem destrancou o depósito às duas da madrugada para esconder as pastas originais!"
+                Clue3Adm = "Fui eu quem destrancou o depósito às duas da madrugada para esconder as pastas originais!",
+                Clue4Title = "Bloco de Notas Rascunhado",
+                Clue4Desc = "Um bloco com anotações de quantias em dinheiro e as iniciais do senador envolvido no escândalo.",
+                Clue4Excuse = "São apenas estimativas de tiragem e custos de gráfica para a edição de domingo.",
+                Clue4Adm = "Eram os valores do suborno que Fagundes me prometeu para queimar a reportagem!"
             },
             new
             {
@@ -1154,7 +1242,11 @@ public static class ProceduralCaseGenerator
                 Clue3Title = "Taça com Resíduo Químico",
                 Clue3Desc = "Uma taça de cristal com gotas de sedativo para cavalos misturado ao licor servido pelo bar.",
                 Clue3Excuse = "Sirvo centenas de coquetéis todas as noites, qualquer garçom pode ter trocado as bandejas na cozinha.",
-                Clue3Adm = "Fui eu quem colocou as gotas no licor a mando de Barreto para que ela não resistisse ao assalto!"
+                Clue3Adm = "Fui eu quem colocou as gotas no licor a mando de Barreto para que ela não resistisse ao assalto!",
+                Clue4Title = "Chave da Saída de Emergência",
+                Clue4Desc = "A chave de ferro dos fundos do cabaré com fibras do vestido da vítima presa no ferrolho.",
+                Clue4Excuse = "A porta dos fundos fica sempre aberta para os entregadores de bebidas e músicos.",
+                Clue4Adm = "Eu destranquei a porta de emergência para facilitar a fuga rápida de Barreto com as joias!"
             }
         };
 
@@ -1183,7 +1275,11 @@ public static class ProceduralCaseGenerator
                 Clue3Title = "Canhoto de Ponto Batido às 21h",
                 Clue3Desc = "O cartão de ponto marcava presença do suspeito no prédio na hora exata do arrombamento.",
                 Clue3Excuse = "Eu estava no culto da igreja às 21h diante de dezenas de testemunhas! Alguém bateu meu cartão!",
-                Clue3Adm = "Foi o comparsa de Prado que bateu meu cartão na catraca para forjar meu álibi falso e me incriminar!"
+                Clue3Adm = "Foi o comparsa de Prado que bateu meu cartão na catraca para forjar meu álibi falso e me incriminar!",
+                Clue4Title = "Chancela de Cera Falsificada",
+                Clue4Desc = "Um selo de cera com imperfeições usado para lacrar gavetas que não correspondia ao molde oficial do suspeito.",
+                Clue4Excuse = "Essa chancela nunca foi minha! Vejam os traços irregulares gravados nela!",
+                Clue4Adm = "Prado mandou forjar essa chancela em um ourives da baixada para tentar simular minha assinatura nos lacres!"
             },
             new
             {
@@ -1208,7 +1304,11 @@ public static class ProceduralCaseGenerator
                 Clue3Title = "Frasco de Ácido Corrosivo",
                 Clue3Desc = "Um frasco de ácido usado para derreter a fechadura foi achado embaixo da bancada do suspeito.",
                 Clue3Excuse = "Aquele ácido é de uso geral da manutenção pesada da fábrica, qualquer técnico tem acesso.",
-                Clue3Adm = "O capanga de Fontana colocou aquele frasco ali enquanto eu estava prestando os primeiros socorros ao vigia!"
+                Clue3Adm = "O capanga de Fontana colocou aquele frasco ali enquanto eu estava prestando os primeiros socorros ao vigia!",
+                Clue4Title = "Registro de Pressão Adulterado",
+                Clue4Desc = "Uma folha de registro do painel da caldeira com a caligrafia do suspeito simulada de forma grosseira.",
+                Clue4Excuse = "Não fui eu quem preencheu esses dados de pressão, a caneta usada nem é a padrão do meu setor!",
+                Clue4Adm = "Fontana tentou falsificar minhas anotações na caldeira para fingir que eu sabotei a pressão propositalmente!"
             }
         };
 
@@ -1271,6 +1371,14 @@ public static class ProceduralCaseGenerator
                         Keywords = arch.Clue3Title.ToLowerInvariant().Split(' '),
                         ExcuseSpeech = arch.Clue3Excuse,
                         AdmissionSpeech = arch.Clue3Adm
+                    },
+                    new ClueBlueprint
+                    {
+                        Title = arch.Clue4Title,
+                        Description = arch.Clue4Desc,
+                        Keywords = arch.Clue4Title.ToLowerInvariant().Split(' '),
+                        ExcuseSpeech = arch.Clue4Excuse,
+                        AdmissionSpeech = arch.Clue4Adm
                     }
                 }
             };
@@ -1330,6 +1438,14 @@ public static class ProceduralCaseGenerator
                         Keywords = arch.Clue3Title.ToLowerInvariant().Split(' '),
                         ExcuseSpeech = arch.Clue3Excuse,
                         AdmissionSpeech = arch.Clue3Adm
+                    },
+                    new ClueBlueprint
+                    {
+                        Title = arch.Clue4Title,
+                        Description = arch.Clue4Desc,
+                        Keywords = arch.Clue4Title.ToLowerInvariant().Split(' '),
+                        ExcuseSpeech = arch.Clue4Excuse,
+                        AdmissionSpeech = arch.Clue4Adm
                     }
                 }
             };

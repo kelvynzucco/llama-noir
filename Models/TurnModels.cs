@@ -37,6 +37,9 @@ public class ClueItem
 
     [JsonIgnore]
     public bool IsNew { get; set; }
+
+    [JsonIgnore]
+    public bool IsUsed { get; set; } = false;
 }
 
 public enum LogEntryType
@@ -552,7 +555,8 @@ public class InterrogationState
             {
                 new() { Title = "Crachá usado às 02:14", Description = "O crachá do Dr. Vance destravou o cofre principal às 02:14 da madrugada." },
                 new() { Title = "Câmeras em Loop", Description = "As câmeras do setor B foram colocadas em loop usando um terminal interno." },
-                new() { Title = "Transferência Suspeita", Description = "Uma conta ligada à clínica onde a filha de Vance está internada recebeu 50 mil créditos ontem." }
+                new() { Title = "Transferência Suspeita", Description = "Uma conta ligada à clínica onde a filha de Vance está internada recebeu 50 mil créditos ontem." },
+                new() { Title = "Frasco de Anestésico", Description = "Um frasco de sedativo hospitalar com dosagem adulterada encontrado nos fundos do laboratório." }
             },
             OpeningGmNarration = "A luz fria da sala de interrogatório reflete nos óculos de Viktor Vance. Ele mantém as mãos entrelaçadas sobre a mesa de metal, tentando parecer no controle, mas seus dedos batem levemente no próprio pulso.",
             OpeningNpcDialogue = "\"Olha, detetive... eu já disse aos guardas. Eu saí do laboratório às 21h. Se meu crachá foi registrado às duas da manhã, o sistema de vocês falhou ou alguém clonou minha credencial. Vamos acabar logo com isso.\"",
