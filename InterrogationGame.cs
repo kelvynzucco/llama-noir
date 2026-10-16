@@ -33,7 +33,7 @@ public class InterrogationGame : Game
     private string _pendingPlayerAction = string.Empty;
     private bool _focusCurrentTurnOnly = false;
 
-    private string _statusBanner = "Conectando ao motor Llamafile (Qwen 2.5 3B Sem Censura)...";
+    private string _statusBanner = "A lâmpada fria oscila sobre a mesa metálica. O interrogatório vai começar.";
 
     // Efeito Typewriter (máquina de escrever)
     private float _typewriterCharsVisible = 9999f;
@@ -84,7 +84,7 @@ public class InterrogationGame : Game
             PreferredBackBufferHeight = WindowHeight,
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "LlamaInterrogation • Investigação Procedural (Qwen 2.5 3B + Llamafile)";
+        Window.Title = "DELEGACIA CENTRAL 1947 • SALA DE INTERROGATÓRIO NOIR";
         Window.AllowUserResizing = false;
         IsMouseVisible = true;
     }
@@ -92,10 +92,10 @@ public class InterrogationGame : Game
     protected override void Initialize()
     {
         AppDomain.CurrentDomain.ProcessExit += (_, _) => _llamafileProvider.KillAllLlamafileProcesses();
-        _state.CaseTitle = "ENCONTRANDO NOVO CASO...";
-        _state.CaseObjective = "Encontrando novo caso...";
-        _state.NpcName = "Identificando Suspeito...";
-        _state.NpcRole = "Buscando registros confidenciais...";
+        _state.CaseTitle = "ABRINDO NOVO INQUÉRITO FORENSE...";
+        _state.CaseObjective = "Consultando arquivos confidenciais do departamento...";
+        _state.NpcName = "Convocando Suspeito...";
+        _state.NpcRole = "Verificando antecedentes criminais...";
         base.Initialize();
 
         // Já abre o jogo encontrando e gerando um caso aleatório inédito!
@@ -278,8 +278,8 @@ public class InterrogationGame : Game
     {
         _useLlamafile = !_useLlamafile;
         _statusBanner = _useLlamafile
-            ? "Modo Qwen 2.5 3B (Llamafile) ATIVO! Criação procedural e respostas sem censura."
-            : "Modo Simulador Local ATIVO.";
+            ? "🎙️ Gravador de Fita Magnetofônica ATIVO (Escuta dinâmica conectada)."
+            : "📋 Registro por Taquigrafia Policial ATIVO (Arquivo interno clássico).";
     }
 
     private async Task GenerateNewProceduralCaseAsync()
@@ -292,19 +292,19 @@ public class InterrogationGame : Game
         _pendingPlayerAction = string.Empty;
 
         ILlmTurnProvider activeProvider = _useLlamafile ? _llamafileProvider : _mockProvider;
-        _statusBanner = "Encontrando novo caso...";
+        _statusBanner = "Abrindo arquivos da delegacia... Convocando suspeito para interrogatório...";
 
         try
         {
             var generatedCase = await activeProvider.GenerateNewCaseAsync();
             _state.ApplyGeneratedCase(generatedCase);
-            _statusBanner = $"Caso Encontrado: {_state.CaseTitle} • Suspeito: {_state.NpcName}!";
+            _statusBanner = $"Inquérito Aberto: {_state.CaseTitle} • Suspeito: {_state.NpcName}";
         }
         catch
         {
             var fallbackCase = await _mockProvider.GenerateNewCaseAsync();
             _state.ApplyGeneratedCase(fallbackCase);
-            _statusBanner = $"Caso Encontrado: {_state.CaseTitle} • Suspeito: {_state.NpcName}!";
+            _statusBanner = $"Inquérito Aberto: {_state.CaseTitle} • Suspeito: {_state.NpcName}";
         }
 
         _autoScrollToBottom = true;
@@ -378,11 +378,11 @@ public class InterrogationGame : Game
         ILlmTurnProvider activeProvider = _useLlamafile ? _llamafileProvider : _mockProvider;
         string synStatus = synergy switch
         {
-            ClueSynergyType.Positive => " (★ Reforço de Pista Certeiro!)",
-            ClueSynergyType.Negative => " (⚠ Evidência Incompatível!)",
+            ClueSynergyType.Positive => " (★ Prova Pericial Compatível!)",
+            ClueSynergyType.Negative => " (⚠ Evidência Desconexa!)",
             _ => ""
         };
-        _statusBanner = $"Interrogando via {activeProvider.ProviderName}{synStatus}...";
+        _statusBanner = $"Registrando depoimento oficial no prontuário{synStatus}...";
 
         await Task.Delay(180);
 
@@ -430,7 +430,7 @@ public class InterrogationGame : Game
             _state.History.Add(new ChatLogEntry
             {
                 Type = LogEntryType.GmNarration,
-                Speaker = "MESTRE DO JOGO",
+                Speaker = "OBSERVAÇÃO FORENSE",
                 Text = output.GmNarration,
                 Turn = executedTurn
             });
@@ -523,15 +523,15 @@ public class InterrogationGame : Game
             {
                 _state.Outcome = GameOutcome.VitoriaConfissao;
                 record.SystemConclusionTitle = "CASO SOLUCIONADO — CONFISSÃO OBTIDA!";
-                record.SystemConclusionText = $"{_state.NpcName} confessou todos os crimes e entregou a localização da prova oculta antes da chegada do advogado! Pressione [F5] Novo Caso IA para gerar outro mistério.";
-                _statusBanner = "VITÓRIA! Você obteve a confissão completa do culpado antes do tempo acabar! Pressione [F5] para Novo Caso.";
+                record.SystemConclusionText = $"{_state.NpcName} confessou todos os crimes e entregou a localização da prova oculta antes da chegada do advogado! Pressione [F5] para assumir um novo inquérito forense.";
+                _statusBanner = "VITÓRIA! Você obteve a confissão completa do culpado antes do tempo acabar! Pressione [F5] para novo inquérito.";
             }
             else
             {
                 _state.Outcome = GameOutcome.VitoriaInocencia;
                 record.SystemConclusionTitle = "INOCÊNCIA COMPROVADA — FARSA DESMASCARADA!";
-                record.SystemConclusionText = $"BRILHANTE DEDUÇÃO: Você provou que {_state.NpcName} foi vítima de uma armadilha, desmontou as falsas evidências e obteve as pistas para prender o verdadeiro mandante! Pressione [F5] para gerar outro caso.";
-                _statusBanner = "VITÓRIA! Inocência comprovada e armação desmascarada antes do advogado chegar! Pressione [F5] para Novo Caso.";
+                record.SystemConclusionText = $"BRILHANTE DEDUÇÃO: Você provou que {_state.NpcName} foi vítima de uma armadilha, desmontou as falsas evidências e obteve as pistas para prender o verdadeiro mandante! Pressione [F5] para assumir outro inquérito.";
+                _statusBanner = "VITÓRIA! Inocência comprovada e armação desmascarada antes do advogado chegar! Pressione [F5] para novo inquérito.";
             }
             record.IsVictoryConclusion = true;
             _state.TurnRecords.Add(record);
@@ -560,7 +560,7 @@ public class InterrogationGame : Game
         GraphicsDevice.Clear(new Color(13, 16, 23));
         _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp);
 
-        DrawTopBar();
+        DrawTopBar(gameTime);
         DrawLeftSuspectAndCluesPanel(gameTime);
         DrawRightConversationPanel(gameTime);
 
@@ -568,7 +568,7 @@ public class InterrogationGame : Game
         base.Draw(gameTime);
     }
 
-    private void DrawTopBar()
+    private void DrawTopBar(GameTime gameTime)
     {
         var fontTitle = _fontSystem.GetFont(22);
         var fontObj = _fontSystem.GetFont(17);
@@ -578,9 +578,12 @@ public class InterrogationGame : Game
         var topRect = new Rectangle(0, 0, WindowWidth, 48);
         DrawPanel(topRect, new Color(19, 24, 35), new Color(40, 50, 72), 1);
 
-        string rawTitle = _isGeneratingCase ? "ENCONTRANDO NOVO CASO..." : _state.CaseTitle;
-        string titleDisplay = TruncateText(fontTitle, rawTitle, 640);
-        _spriteBatch.DrawString(fontTitle, titleDisplay, new Vector2(18, 12), new Color(240, 244, 255));
+        // Distintivo policial dourado em pixel art ao lado do título
+        DrawPixelBadge(18, 16, new Color(250, 204, 21));
+
+        string rawTitle = _isGeneratingCase ? "ABRINDO NOVO INQUÉRITO FORENSE..." : _state.CaseTitle;
+        string titleDisplay = TruncateText(fontTitle, rawTitle, 610);
+        _spriteBatch.DrawString(fontTitle, titleDisplay, new Vector2(40, 12), new Color(240, 244, 255));
 
         // Botão de Modo de Visualização (Cena Atual vs Histórico Completo)
         _toggleViewModeRect = new Rectangle(666, 6, 198, 36);
@@ -588,10 +591,11 @@ public class InterrogationGame : Game
         DrawPanel(_toggleViewModeRect,
             hoverView ? new Color(45, 58, 82) : new Color(30, 38, 56),
             _focusCurrentTurnOnly ? new Color(56, 189, 248) : new Color(85, 100, 135), 1);
-        string viewText = _focusCurrentTurnOnly ? "[F3] Visão: Turno Atual" : "[F3] Visão: Histórico";
-        _spriteBatch.DrawString(fontSub, viewText, new Vector2(_toggleViewModeRect.X + 12, _toggleViewModeRect.Y + 8), Color.White);
+        DrawPixelMagnifyingGlass(_toggleViewModeRect.X + 8, _toggleViewModeRect.Y + 11, _focusCurrentTurnOnly ? new Color(56, 189, 248) : new Color(160, 175, 205));
+        string viewText = _focusCurrentTurnOnly ? "[F3] Turno Atual" : "[F3] Arquivo Geral";
+        _spriteBatch.DrawString(fontSub, viewText, new Vector2(_toggleViewModeRect.X + 28, _toggleViewModeRect.Y + 8), Color.White);
 
-        // Botão de alternância Mock <-> Llamafile
+        // Botão de alternância Gravador de Fita <-> Taquigrafia
         _toggleProviderRect = new Rectangle(872, 6, 290, 36);
         bool hoverToggle = _toggleProviderRect.Contains(_prevMouse.Position);
         Color toggleBg = _useLlamafile
@@ -600,19 +604,21 @@ public class InterrogationGame : Game
         Color toggleBorder = _useLlamafile ? new Color(80, 210, 150) : new Color(95, 110, 145);
         DrawPanel(_toggleProviderRect, toggleBg, toggleBorder, 1);
 
+        DrawPixelTapeRecorder(_toggleProviderRect.X + 8, _toggleProviderRect.Y + 10, gameTime, _useLlamafile);
         string modeLabel = _useLlamafile
-            ? "[F2] IA: Qwen 2.5 3B (Ativo)"
-            : "[F2] IA: Simulador Local";
-        _spriteBatch.DrawString(fontSub, modeLabel, new Vector2(_toggleProviderRect.X + 14, _toggleProviderRect.Y + 8), Color.White);
+            ? "[F2] GRAVADOR: FITA MAGNÉTICA"
+            : "[F2] GRAVADOR: TAQUIGRAFIA";
+        _spriteBatch.DrawString(fontSub, modeLabel, new Vector2(_toggleProviderRect.X + 36, _toggleProviderRect.Y + 8), Color.White);
 
-        // Botão de Gerar Novo Caso Procedural via IA
+        // Botão de Gerar Novo Inquérito Policial
         _newCaseButtonRect = new Rectangle(1170, 6, 174, 36);
         bool hoverReset = _newCaseButtonRect.Contains(_prevMouse.Position);
         DrawPanel(_newCaseButtonRect,
             _isGeneratingCase ? new Color(75, 60, 24) : (hoverReset ? new Color(98, 48, 120) : new Color(68, 34, 88)),
             new Color(192, 132, 252), 1);
-        string newCaseLabel = _isGeneratingCase ? "Buscando Caso..." : "[F5] Novo Caso IA";
-        _spriteBatch.DrawString(fontSub, newCaseLabel, new Vector2(_newCaseButtonRect.X + 14, _newCaseButtonRect.Y + 8), new Color(245, 230, 255));
+        DrawPixelFolder(_newCaseButtonRect.X + 8, _newCaseButtonRect.Y + 12, new Color(250, 204, 21));
+        string newCaseLabel = _isGeneratingCase ? "Buscando Arquivo..." : "[F5] NOVO INQUÉRITO";
+        _spriteBatch.DrawString(fontSub, newCaseLabel, new Vector2(_newCaseButtonRect.X + 30, _newCaseButtonRect.Y + 8), new Color(245, 230, 255));
 
         // 2. BARRA DE CONTEXTO NOIR + OBJETIVO EM DESTAQUE ABAIXO DO HEADER (Centralizada e sem cortar o texto)
         var objBannerRect = new Rectangle(16, 50, WindowWidth - 32, 46);
@@ -685,6 +691,7 @@ public class InterrogationGame : Game
         else
         {
             DrawNpcPortrait(portraitRect, gameTime);
+            DrawCornerPhotoMounts(portraitRect, new Color(85, 95, 115));
         }
 
         int infoX = 200;
@@ -697,46 +704,50 @@ public class InterrogationGame : Game
         _spriteBatch.DrawString(fontSmall, wrappedRole, new Vector2(infoX, 138), new Color(165, 180, 210));
 
         Color emotionColor = GetEmotionColor(_state.Emotion);
-        var emotionBox = new Rectangle(infoX, 184, 244, 34);
+        var emotionBox = new Rectangle(infoX, 184, 204, 34);
         DrawPanel(emotionBox, emotionColor * 0.22f, emotionColor, 1);
         _spriteBatch.DrawString(fontBody, $"Postura: {_state.Emotion.ToString().ToUpperInvariant()}",
             new Vector2(emotionBox.X + 12, emotionBox.Y + 6), emotionColor);
 
+        // Cinzeiro com cigarro e fumaça animada na sala de interrogatório
+        DrawPixelCigaretteSmoke(infoX + 214, 192, gameTime);
+
         int bpm = 68 + (int)(_displayStress * 0.72f);
-        _spriteBatch.DrawString(fontSmall, $"Polígrafo: {bpm} BPM",
+        _spriteBatch.DrawString(fontSmall, $"Polígrafo Forense: {bpm} BPM",
             new Vector2(infoX, 226), bpm > 115 ? new Color(255, 110, 110) : new Color(130, 210, 175));
-        DrawHeartbeatWave(new Rectangle(infoX, 248, 244, 26), gameTime, bpm);
+        DrawPolygraphOscilloscope(new Rectangle(infoX, 248, 244, 26), gameTime, bpm, bpm > 115 ? new Color(244, 63, 94) : new Color(52, 211, 153));
 
         int meterY = 286;
         DrawMeterBar(new Rectangle(32, meterY, 412, 64),
-            "CONFIANÇA / EMPATIA",
+            "CONFIANÇA DO SUSPEITO",
             $"{_state.Trust}%",
             _displayTrust / 100f,
             new Color(56, 189, 248),
-            "Sobe com empatia e acordos.");
+            "Sobe com empatia e acordos. Evite hostilidade sem provas.");
 
         DrawMeterBar(new Rectangle(32, meterY + 68, 412, 64),
             "PRESSÃO PSICOLÓGICA (LIMITE: 100%)",
             $"{_state.Stress}%",
             _displayStress / 100f,
             _state.Stress >= 75 ? new Color(244, 63, 94) : new Color(245, 158, 11),
-            "Em 100% o suspeito trava e pede advogado.");
+            "Em 100%, o suspeito cala-se ou sofre colapso emocional.");
 
         DrawMeterBar(new Rectangle(32, meterY + 136, 412, 64),
-            "PROGRESSO DA CONFISSÃO (META: 100%)",
+            "PROGRESSO DO INQUÉRITO (META: 100%)",
             $"{_state.CaseProgress}%",
             _displayProgress / 100f,
             new Color(52, 211, 153),
-            "Ao chegar em 100%, você soluciona o caso.");
+            "Ao atingir 100%, a verdade factual é totalmente elucidada.");
 
         var cluesPanel = new Rectangle(16, 512, 444, 292);
         DrawPanel(cluesPanel, new Color(20, 24, 34), new Color(46, 56, 78), 1);
-        _spriteBatch.DrawString(fontHeader, "DOSSIÊ DE PISTAS (Clique p/ anexar à fala)", new Vector2(32, 520), new Color(250, 204, 21));
+        DrawPixelFolder(32, 524, new Color(250, 204, 21));
+        _spriteBatch.DrawString(fontHeader, "DOSSIÊ DE EVIDÊNCIAS FORENSES", new Vector2(54, 520), new Color(250, 204, 21));
 
         _clueRects.Clear();
         if (_isGeneratingCase)
         {
-            _spriteBatch.DrawString(fontBody, "Encontrando novo caso...", new Vector2(32, 560), new Color(168, 180, 205));
+            _spriteBatch.DrawString(fontBody, "Abrindo arquivos confidenciais...", new Vector2(32, 560), new Color(168, 180, 205));
         }
         else
         {
@@ -774,12 +785,12 @@ public class InterrogationGame : Game
                 Color titleColor;
                 if (isSelected)
                 {
-                    titleText = $"[✓ ANEXADA] {clue.Title}";
+                    titleText = $"[✓ ANEXADA AO DIÁLOGO] {clue.Title}";
                     titleColor = new Color(254, 240, 138);
                 }
                 else if (clue.IsNew)
                 {
-                    titleText = $"★ [NOVA] {clue.Title}";
+                    titleText = $"★ [NOVA EVIDÊNCIA] {clue.Title}";
                     titleColor = new Color(254, 240, 138);
                 }
                 else
@@ -837,7 +848,7 @@ public class InterrogationGame : Game
             DrawAnimatedMagnifyingGlass(genBox.Center.X, genBox.Y + 92, 34, gameTime);
 
             var fontSearch = _fontSystem.GetFont(24);
-            string searchTitle = $"Encontrando novo caso{dotsStr}";
+            string searchTitle = $"Abrindo arquivos confidenciais{dotsStr}";
             var stSize = fontSearch.MeasureString(searchTitle);
             _spriteBatch.DrawString(fontSearch, searchTitle,
                 new Vector2(genBox.X + (genBox.Width - stSize.X) / 2f, genBox.Y + 172),
@@ -954,38 +965,40 @@ public class InterrogationGame : Game
             _clearClueButtonRect = Rectangle.Empty;
             var endPanelRect = new Rectangle(rightX, optionsAreaY, rightWidth, optionsAreaHeight);
             bool isVictory = _state.Outcome is GameOutcome.VitoriaConfissao or GameOutcome.VitoriaInocencia;
-            Color endBg = isVictory ? new Color(20, 36, 28) : new Color(38, 22, 24);
+            Color endBg = isVictory ? new Color(18, 34, 26) : new Color(36, 20, 22);
             Color endBorder = isVictory ? new Color(52, 211, 153) : new Color(248, 113, 113);
             DrawPanel(endPanelRect, endBg, endBorder, 2);
 
             string endTitle = _state.Outcome switch
             {
-                GameOutcome.VitoriaConfissao => "CASO SOLUCIONADO — CONFISSÃO OBTIDA!",
-                GameOutcome.VitoriaInocencia => "INOCÊNCIA COMPROVADA — FARSA DESMASCARADA!",
-                GameOutcome.DerrotaCoacaoInocente => "DERROTA — FALSO TESTEMUNHO POR COAÇÃO",
-                GameOutcome.DerrotaSilencioTotal => "DERROTA — SILÊNCIO TOTAL DO SUSPEITO",
-                GameOutcome.DerrotaTempoEsgotado => "DERROTA — TEMPO ESGOTADO (O ADVOGADO CHEGOU)",
-                _ => "INTERROGATÓRIO ENCERRADO"
+                GameOutcome.VitoriaConfissao => "CASO ARQUIVADO — CONFISSÃO OBTIDA!",
+                GameOutcome.VitoriaInocencia => "INQUÉRITO CONCLUÍDO — INOCÊNCIA COMPROVADA!",
+                GameOutcome.DerrotaCoacaoInocente => "INQUÉRITO ANULADO — FALSO TESTEMUNHO POR COAÇÃO",
+                GameOutcome.DerrotaSilencioTotal => "INTERROGATÓRIO TRANCADO — SILÊNCIO TOTAL DO SUSPEITO",
+                GameOutcome.DerrotaTempoEsgotado => "PRAZO ESGOTADO — ADVOGADO ASSUMIU A CUSTÓDIA",
+                _ => "INQUÉRITO POLICIAL ENCERRADO"
             };
 
             string endSub = _state.Outcome switch
             {
-                GameOutcome.VitoriaConfissao => $"Você obteve a confissão completa de {_state.NpcName} e descobriu a prova oculta antes do advogado chegar!",
-                GameOutcome.VitoriaInocencia => $"Você provou que {_state.NpcName} foi vítima de uma armadilha, desmascarou o verdadeiro mandante e recuperou a prova chave!",
-                GameOutcome.DerrotaCoacaoInocente => $"Você coagiu impiedosamente um inocente até 100% de estresse e gerou uma falsa confissão. O inquérito foi anulado!",
-                GameOutcome.DerrotaSilencioTotal => (_state.Trust <= 0 ? "A desconfiança atingiu o fundo do poço (0%) e o suspeito recusa-se a pronunciar uma única palavra." : $"{_state.NpcName} atingiu 100% de pressão e fechou-se em silêncio absoluto."),
-                GameOutcome.DerrotaTempoEsgotado => "Os 10 turnos regulamentares se esgotaram antes que a verdade fosse elucidada.",
-                _ => "O interrogatório chegou ao fim."
+                GameOutcome.VitoriaConfissao => $"Você obteve a confissão formal de {_state.NpcName} e recuperou a prova decisiva antes do advogado chegar!",
+                GameOutcome.VitoriaInocencia => $"Você provou que {_state.NpcName} foi vítima de uma armadilha, desmascarou a farsa e apreendeu a prova cabal!",
+                GameOutcome.DerrotaCoacaoInocente => $"Você coagiu um inocente até 100% de estresse e extraiu uma falsa confissão. A corregedoria anulou o inquérito!",
+                GameOutcome.DerrotaSilencioTotal => (_state.Trust <= 0 ? "A desconfiança atingiu o fundo do poço (0%) e o suspeito recusa-se a pronunciar uma única palavra sem advogado." : $"{_state.NpcName} atingiu 100% de estresse e fechou-se em silêncio absoluto."),
+                GameOutcome.DerrotaTempoEsgotado => "Os 10 turnos regulamentares se esgotaram antes que os fatos fossem plenamente elucidados.",
+                _ => "O interrogatório policial chegou ao fim."
             };
 
-            _spriteBatch.DrawString(fontTitle, endTitle, new Vector2(endPanelRect.X + 24, endPanelRect.Y + 20), endBorder);
-            _spriteBatch.DrawString(fontBody, endSub, new Vector2(endPanelRect.X + 24, endPanelRect.Y + 54), Color.White);
+            // Carimbo retrô de inquérito criminal no topo
+            DrawRetroStamp(new Rectangle(endPanelRect.X + 24, endPanelRect.Y + 14, endPanelRect.Width - 48, 36), endTitle, endBorder, fontTitle);
+            _spriteBatch.DrawString(fontBody, endSub, new Vector2(endPanelRect.X + 24, endPanelRect.Y + 58), Color.White);
 
-            var restartBtnRect = new Rectangle(endPanelRect.X + 24, endPanelRect.Y + 110, 520, 52);
+            var restartBtnRect = new Rectangle(endPanelRect.X + 24, endPanelRect.Y + 116, 560, 48);
             bool hoverRestart = restartBtnRect.Contains(_prevMouse.Position);
             DrawPanel(restartBtnRect, hoverRestart ? new Color(37, 99, 235) : new Color(29, 78, 216), new Color(147, 197, 253), 2);
-            string rText = "▶ [F5 ou CLIQUE AQUI] INICIAR NOVO CASO PROCEDURAL";
-            _spriteBatch.DrawString(fontTitle, rText, new Vector2(restartBtnRect.X + 20, restartBtnRect.Y + 14), Color.White);
+            DrawPixelFolder(restartBtnRect.X + 16, restartBtnRect.Y + 16, new Color(254, 240, 138));
+            string rText = "▶ [F5] ARQUIVAR & ASSUMIR PRÓXIMO INQUÉRITO POLICIAL";
+            _spriteBatch.DrawString(fontTitle, rText, new Vector2(restartBtnRect.X + 40, restartBtnRect.Y + 12), Color.White);
 
             _dialogueRestartRect = restartBtnRect;
         }
@@ -994,8 +1007,8 @@ public class InterrogationGame : Game
             if (_selectedClue != null)
             {
                 string headerLeft = _isWaitingForLlm
-                    ? "AGUARDANDO REAÇÃO DO SUSPEITO..."
-                    : "OPÇÕES DE DIÁLOGO [Pressione 1-4 ou clique na fala]:";
+                    ? "O silêncio pesa na sala... O suspeito mede cada palavra..."
+                    : "INTERROGAR SUSPEITO [Pressione 1-4 ou clique na linha de diálogo]:";
                 _spriteBatch.DrawString(fontSmall, headerLeft, new Vector2(rightX + 4, optionsAreaY), new Color(165, 185, 225));
 
                 string clearText = "[✕ DESANEXAR]";
@@ -1005,7 +1018,7 @@ public class InterrogationGame : Game
                 DrawPanel(_clearClueButtonRect, hoverClear ? new Color(185, 28, 28) : new Color(127, 29, 29), new Color(248, 113, 113), 1);
                 _spriteBatch.DrawString(fontSmall, clearText, new Vector2(_clearClueButtonRect.X + 7, _clearClueButtonRect.Y + 2), Color.White);
 
-                string clueBanner = $"★ PISTA ANEXADA: {_selectedClue.Title}";
+                string clueBanner = $"📂 PROVA ANEXADA: {_selectedClue.Title}";
                 int maxBannerW = _clearClueButtonRect.X - (rightX + 380) - 10;
                 if (maxBannerW > 100)
                 {
@@ -1017,8 +1030,8 @@ public class InterrogationGame : Game
             {
                 _clearClueButtonRect = Rectangle.Empty;
                 string headerText = _isWaitingForLlm
-                    ? "AGUARDANDO REAÇÃO DO SUSPEITO..."
-                    : "OPÇÕES DE DIÁLOGO DO DETETIVE [Escolha uma fala ou pressione as teclas 1, 2, 3, 4]:";
+                    ? "O silêncio pesa na sala... O suspeito mede cada palavra..."
+                    : "INTERROGAR SUSPEITO [Escolha uma linha de inquirição ou pressione 1, 2, 3, 4]:";
                 Color headerColor = _isWaitingForLlm ? new Color(250, 204, 21) : new Color(165, 185, 225);
                 _spriteBatch.DrawString(fontSmall, headerText, new Vector2(rightX + 4, optionsAreaY), headerColor);
             }
@@ -1065,8 +1078,15 @@ public class InterrogationGame : Game
 
                 DrawPanel(cardRect, cardBg, cardBorder, hover ? 2 : 1);
 
-                // Badge do Teclado + Categoria
-                string badge = $"[{i + 1}] {opt.Tag}";
+                // Badge do Teclado + Ícone Temático + Categoria
+                string categoryIcon = opt.Category switch
+                {
+                    "Empatia" => "🤝",
+                    "Pressao" => "⚡",
+                    "Revelacao" or "Final" => "⚖️",
+                    _ => "🔍"
+                };
+                string badge = $"[{i + 1}] {categoryIcon} {opt.Tag}";
                 var badgeSize = fontSmall.MeasureString(badge);
                 var badgeRect = new Rectangle(cardRect.X + 8, cardRect.Y + 7, (int)badgeSize.X + 16, 26);
                 DrawPanel(badgeRect, tagColor * 0.18f, tagColor * 0.7f, 1);
@@ -1077,7 +1097,7 @@ public class InterrogationGame : Game
                 if (_selectedClue != null)
                 {
                     bool isCompatible = opt.IsClueCompatible(_selectedClue);
-                    string synBadge = isCompatible ? "★ REFORÇO CERTEIRO (+)" : "⚠ DESCONEXA (-)";
+                    string synBadge = isCompatible ? "★ PROVA CONTUNDENTE (+)" : "⚠ EVIDÊNCIA DESCONEXA (-)";
                     Color synColor = isCompatible ? new Color(52, 211, 153) : new Color(248, 113, 113);
                     Color synBg = isCompatible ? new Color(20, 50, 35) : new Color(50, 20, 25);
 
@@ -1114,8 +1134,8 @@ public class InterrogationGame : Game
         DrawPanel(rect, new Color(21, 27, 40), new Color(52, 68, 98), 1);
 
         string mainTurnLabel = _state.Outcome == GameOutcome.EmAndamento
-            ? $"TURNO ATUAL: {_state.CurrentTurn:00} / {_state.MaxTurns:00}"
-            : ((_state.Outcome is GameOutcome.VitoriaConfissao or GameOutcome.VitoriaInocencia) ? "CASO SOLUCIONADO!" : "FIM DO INTERROGATÓRIO");
+            ? $"REGISTRO CRONOLÓGICO: TURNO {_state.CurrentTurn:00} / {_state.MaxTurns:00}"
+            : ((_state.Outcome is GameOutcome.VitoriaConfissao or GameOutcome.VitoriaInocencia) ? "INQUÉRITO CONCLUÍDO COM SUCESSO!" : "INTERROGATÓRIO ENCERRADO");
 
         Color turnLabelColor = _state.CurrentTurn >= _state.MaxTurns - 2
             ? new Color(251, 146, 60)
@@ -1125,10 +1145,10 @@ public class InterrogationGame : Game
 
         int remaining = Math.Max(0, _state.MaxTurns - _state.CurrentTurn + 1);
         string subStatus = _isWaitingForLlm
-            ? "O suspeito está reagindo à sua abordagem..."
+            ? "O silêncio pesa na sala... O suspeito mede cada palavra..."
             : (_state.Outcome == GameOutcome.EmAndamento
-                ? $"SUA VEZ DE AGIR • Restam {remaining} turno(s) até o advogado chegar"
-                : "Clique em [F5] Novo Caso IA no topo para gerar um novo mistério procedural");
+                ? $"SUA VEZ DE AGIR • Restam {remaining} turno(s) até a chegada do advogado de defesa"
+                : "Pressione [F5] no topo para assumir um novo inquérito policial");
         _spriteBatch.DrawString(fontSmall, subStatus, new Vector2(rect.X + 16, rect.Y + 35), new Color(190, 205, 230));
 
         int pillWidth = 36;
@@ -1249,7 +1269,7 @@ public class InterrogationGame : Game
             var playerBubble = new Rectangle(rect.Right - bubbleWidth, curY, bubbleWidth, bubbleHeight);
 
             DrawPanel(playerBubble, new Color(22, 38, 68) * opacity, new Color(59, 130, 246) * opacity, 1);
-            _spriteBatch.DrawString(fontSmall, "VOCÊ (DETETIVE) PERGUNTOU / FEZ:",
+            _spriteBatch.DrawString(fontSmall, "🎙️ INVESTIGADOR (VOCÊ):",
                 new Vector2(playerBubble.X + 16, playerBubble.Y + 7), new Color(147, 197, 253) * opacity);
             _spriteBatch.DrawString(fontBody, wrappedPlayer,
                 new Vector2(playerBubble.X + 16, playerBubble.Y + 30), new Color(240, 245, 255) * opacity);
@@ -1264,7 +1284,7 @@ public class InterrogationGame : Game
             var gmRect = new Rectangle(rect.X + 8, curY, rect.Width - 16, gmBoxH);
 
             DrawFilledRect(new Rectangle(gmRect.X, gmRect.Y + 2, 4, gmRect.Height - 4), new Color(167, 139, 250) * opacity);
-            _spriteBatch.DrawString(fontSmall, "◈ CENA & LINGUAGEM CORPORAL (MESTRE DO JOGO):",
+            _spriteBatch.DrawString(fontSmall, "👁️ OBSERVAÇÃO FORENSE & CONDUTA CORPORAL:",
                 new Vector2(gmRect.X + 14, gmRect.Y + 2), new Color(196, 181, 253) * opacity);
             _spriteBatch.DrawString(fontBody, wrappedGm,
                 new Vector2(gmRect.X + 14, gmRect.Y + 25), new Color(220, 215, 245) * opacity);
@@ -1282,7 +1302,7 @@ public class InterrogationGame : Game
         DrawPanel(npcCard, npcBg * opacity, emotionColor * (isLatest ? 0.95f : 0.45f), isLatest ? 2 : 1);
         DrawFilledRect(new Rectangle(npcCard.X, npcCard.Y, 6, npcCard.Height), emotionColor * opacity);
 
-        string npcHeader = $"RESPOSTA DE {_state.NpcName.ToUpperInvariant()}";
+        string npcHeader = $"🗣️ DEPOIMENTO DE {_state.NpcName.ToUpperInvariant()}:";
         _spriteBatch.DrawString(fontSmall, npcHeader, new Vector2(npcCard.X + 18, npcCard.Y + 9), Color.White * opacity);
 
         string emotionBadge = $"POSTURA: {rec.NpcEmotion.ToString().ToUpperInvariant()}";
@@ -1305,23 +1325,23 @@ public class InterrogationGame : Game
             pillX = DrawImpactPill(pillX, pillY, $"Pressão {FormatDelta(rec.StressDelta)}%",
                 rec.StressDelta > 15 ? new Color(244, 63, 94) : new Color(245, 158, 11), fontSmall, opacity);
 
-            pillX = DrawImpactPill(pillX, pillY, $"Confissão {FormatDelta(rec.ProgressDelta)}%",
+            pillX = DrawImpactPill(pillX, pillY, $"Progresso {FormatDelta(rec.ProgressDelta)}%",
                 new Color(52, 211, 153), fontSmall, opacity);
 
             if (rec.ClueSynergy == ClueSynergyType.Positive)
             {
-                pillX = DrawImpactPill(pillX, pillY, $"★ Reforço: {rec.AttachedClueTitle}",
+                pillX = DrawImpactPill(pillX, pillY, $"★ Prova Contundente: {rec.AttachedClueTitle}",
                     new Color(52, 211, 153), fontSmall, opacity);
             }
             else if (rec.ClueSynergy == ClueSynergyType.Negative)
             {
-                pillX = DrawImpactPill(pillX, pillY, $"⚠ Desconexa: {rec.AttachedClueTitle}",
+                pillX = DrawImpactPill(pillX, pillY, $"⚠ Evidência Desconexa: {rec.AttachedClueTitle}",
                     new Color(248, 113, 113), fontSmall, opacity);
             }
 
             if (!string.IsNullOrEmpty(rec.UnlockedClueTitle))
             {
-                DrawImpactPill(pillX, pillY, $"★ Nova Pista: {rec.UnlockedClueTitle}",
+                DrawImpactPill(pillX, pillY, $"★ Nova Evidência: {rec.UnlockedClueTitle}",
                     new Color(250, 204, 21), fontSmall, opacity);
             }
         }
@@ -1369,7 +1389,7 @@ public class InterrogationGame : Game
         int bubbleHeight = pTextH + 40;
         var playerBubble = new Rectangle(rect.Right - bubbleWidth, curY, bubbleWidth, bubbleHeight);
         DrawPanel(playerBubble, new Color(22, 38, 68), new Color(59, 130, 246), 1);
-        _spriteBatch.DrawString(fontSmall, "VOCÊ (DETETIVE) PERGUNTOU / FEZ:",
+        _spriteBatch.DrawString(fontSmall, "🎙️ INVESTIGADOR (VOCÊ):",
             new Vector2(playerBubble.X + 16, playerBubble.Y + 7), new Color(147, 197, 253));
         _spriteBatch.DrawString(fontBody, wrappedPlayer,
             new Vector2(playerBubble.X + 16, playerBubble.Y + 30), Color.White);
@@ -1380,7 +1400,7 @@ public class InterrogationGame : Game
         string dotsStr = new('.', dots);
         var waitRect = new Rectangle(rect.X, curY, rect.Width, 60);
         DrawPanel(waitRect, new Color(24, 30, 44), new Color(139, 92, 246), 1);
-        _spriteBatch.DrawString(fontBody, $"Mestre do Jogo e {_state.NpcName} estão reagindo à sua ação{dotsStr}",
+        _spriteBatch.DrawString(fontBody, $"O silêncio pesa na sala... {_state.NpcName} mede as palavras sob a luz fria{dotsStr}",
             new Vector2(waitRect.X + 18, waitRect.Y + 18), new Color(196, 181, 253));
     }
 
@@ -1633,6 +1653,220 @@ public class InterrogationGame : Game
     private void DrawFilledRect(Rectangle rect, Color color)
     {
         _spriteBatch.Draw(_pixel, rect, color);
+    }
+
+    /// <summary>
+    /// Distintivo policial retrô de metal dourado com estrela central (14x16 px).
+    /// </summary>
+    private void DrawPixelBadge(int x, int y, Color color)
+    {
+        Color goldDark = new Color(160, 115, 15);
+        Color goldBright = new Color(254, 240, 138);
+
+        int[] widths = { 10, 12, 14, 14, 14, 14, 14, 12, 10, 8, 6, 4, 2 };
+        for (int r = 0; r < widths.Length; r++)
+        {
+            int w = widths[r];
+            int startX = x + (14 - w) / 2;
+            int rowY = y + r;
+            DrawFilledRect(new Rectangle(startX, rowY, w, 1), goldDark);
+            if (w > 2 && r > 0 && r < widths.Length - 1)
+            {
+                DrawFilledRect(new Rectangle(startX + 1, rowY, w - 2, 1), color);
+            }
+        }
+        DrawFilledRect(new Rectangle(x + 6, y + 3, 2, 6), goldBright);
+        DrawFilledRect(new Rectangle(x + 4, y + 5, 6, 2), goldBright);
+    }
+
+    /// <summary>
+    /// Pasta parda clássica de inquérito criminal com aba e folha interna (16x12 px).
+    /// </summary>
+    private void DrawPixelFolder(int x, int y, Color color)
+    {
+        Color tabColor = new Color(234, 179, 8);
+        Color darkEdge = new Color(133, 77, 14);
+
+        // Aba no topo esquerdo
+        DrawFilledRect(new Rectangle(x, y, 6, 2), tabColor);
+        // Folha de relatório interna espreitando
+        DrawFilledRect(new Rectangle(x + 7, y + 1, 7, 2), new Color(245, 245, 250));
+        // Corpo principal da pasta
+        DrawFilledRect(new Rectangle(x, y + 2, 16, 10), color);
+        DrawFilledRect(new Rectangle(x, y + 2, 1, 10), darkEdge);
+        DrawFilledRect(new Rectangle(x, y + 11, 16, 1), darkEdge);
+        DrawFilledRect(new Rectangle(x + 15, y + 2, 1, 10), darkEdge);
+    }
+
+    /// <summary>
+    /// Ícone procedural de lupa de detetive com aro, reflexo e cabo inclinado (14x14 px).
+    /// </summary>
+    private void DrawPixelMagnifyingGlass(int x, int y, Color color)
+    {
+        Color rim = color;
+        Color lens = new Color(186, 230, 253);
+        Color handle = new Color(202, 138, 4);
+
+        DrawFilledRect(new Rectangle(x + 2, y, 5, 1), rim);
+        DrawFilledRect(new Rectangle(x + 1, y + 1, 7, 1), rim);
+        DrawFilledRect(new Rectangle(x, y + 2, 9, 5), rim);
+        DrawFilledRect(new Rectangle(x + 1, y + 7, 7, 1), rim);
+        DrawFilledRect(new Rectangle(x + 2, y + 8, 5, 1), rim);
+
+        DrawFilledRect(new Rectangle(x + 2, y + 2, 5, 5), lens);
+        DrawFilledRect(new Rectangle(x + 3, y + 3, 2, 2), Color.White);
+
+        DrawFilledRect(new Rectangle(x + 7, y + 7, 2, 2), handle);
+        DrawFilledRect(new Rectangle(x + 9, y + 9, 2, 2), handle);
+        DrawFilledRect(new Rectangle(x + 11, y + 11, 2, 2), handle);
+    }
+
+    /// <summary>
+    /// Gravador de rolo magnetofônico com bobinas giratórias e luz indicadora (22x15 px).
+    /// </summary>
+    private void DrawPixelTapeRecorder(int x, int y, GameTime gameTime, bool isSpinning)
+    {
+        DrawFilledRect(new Rectangle(x, y, 22, 15), new Color(26, 32, 42));
+        DrawFilledRect(new Rectangle(x, y, 22, 1), new Color(71, 85, 105));
+        DrawFilledRect(new Rectangle(x, y + 14, 22, 1), new Color(15, 23, 42));
+
+        float blink = (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 5.0);
+        Color ledColor = isSpinning
+            ? (blink > 0 ? new Color(239, 68, 68) : new Color(127, 29, 29))
+            : new Color(34, 197, 94);
+        DrawFilledRect(new Rectangle(x + 2, y + 2, 2, 2), ledColor);
+
+        int r1x = x + 7;
+        int r2x = x + 16;
+        int ry = y + 7;
+
+        DrawFilledCircle(r1x, ry, 3, new Color(85, 55, 35));
+        DrawFilledCircle(r2x, ry, 3, new Color(85, 55, 35));
+
+        float angle = isSpinning ? (float)gameTime.TotalGameTime.TotalSeconds * 6f : 0f;
+        int s1dx = (int)(MathF.Cos(angle) * 2f);
+        int s1dy = (int)(MathF.Sin(angle) * 2f);
+        DrawFilledRect(new Rectangle(r1x + s1dx, ry + s1dy, 1, 1), Color.WhiteSmoke);
+        DrawFilledRect(new Rectangle(r1x - s1dx, ry - s1dy, 1, 1), Color.WhiteSmoke);
+
+        int s2dx = (int)(MathF.Cos(angle + 1.2f) * 2f);
+        int s2dy = (int)(MathF.Sin(angle + 1.2f) * 2f);
+        DrawFilledRect(new Rectangle(r2x + s2dx, ry + s2dy, 1, 1), Color.WhiteSmoke);
+        DrawFilledRect(new Rectangle(r2x - s2dx, ry - s2dy, 1, 1), Color.WhiteSmoke);
+
+        DrawFilledRect(new Rectangle(r1x, ry, 1, 1), Color.LightGray);
+        DrawFilledRect(new Rectangle(r2x, ry, 1, 1), Color.LightGray);
+
+        DrawFilledRect(new Rectangle(r1x, ry + 4, r2x - r1x, 1), new Color(160, 110, 70));
+    }
+
+    /// <summary>
+    /// Cinzeiro de vidro clássico de delegacia noir com cigarro aceso e fumaça ondulante.
+    /// </summary>
+    private void DrawPixelCigaretteSmoke(int x, int y, GameTime gameTime)
+    {
+        DrawFilledRect(new Rectangle(x, y + 8, 22, 5), new Color(60, 75, 95));
+        DrawFilledRect(new Rectangle(x + 2, y + 6, 18, 2), new Color(40, 50, 68));
+        DrawFilledRect(new Rectangle(x + 1, y + 12, 20, 1), new Color(25, 32, 45));
+
+        DrawFilledRect(new Rectangle(x + 4, y + 5, 12, 2), new Color(245, 245, 240));
+        DrawFilledRect(new Rectangle(x + 12, y + 5, 4, 2), new Color(194, 120, 60));
+
+        float emberFlicker = (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 9f) * 0.25f + 0.75f;
+        Color emberColor = new Color(255, 90 + (int)(emberFlicker * 50), 20);
+        DrawFilledRect(new Rectangle(x + 3, y + 5, 2, 2), emberColor);
+
+        float t = (float)gameTime.TotalGameTime.TotalSeconds;
+        for (int i = 0; i < 7; i++)
+        {
+            float progress = ((t * 0.75f + i * 0.16f) % 1.0f);
+            int smokeY = (y + 4) - (int)(progress * 42f);
+            float drift = MathF.Sin(t * 2.2f + i * 1.1f) * (progress * 14f);
+            int smokeX = (x + 3) + (int)drift;
+
+            float alpha = (1.0f - progress) * 0.42f;
+            int size = 1 + (int)(progress * 3.5f);
+            Color smokeColor = new Color(190, 205, 225) * alpha;
+            DrawFilledRect(new Rectangle(smokeX, smokeY, size, size), smokeColor);
+        }
+    }
+
+    /// <summary>
+    /// Cantoneiras pretas triangulares de montagem de foto de fichário criminal noir.
+    /// </summary>
+    private void DrawCornerPhotoMounts(Rectangle rect, Color mountColor)
+    {
+        int s = 8;
+        for (int i = 0; i < s; i++)
+            DrawFilledRect(new Rectangle(rect.X, rect.Y + i, s - i, 1), mountColor);
+
+        for (int i = 0; i < s; i++)
+            DrawFilledRect(new Rectangle(rect.Right - (s - i), rect.Y + i, s - i, 1), mountColor);
+
+        for (int i = 0; i < s; i++)
+            DrawFilledRect(new Rectangle(rect.X, rect.Bottom - 1 - i, s - i, 1), mountColor);
+
+        for (int i = 0; i < s; i++)
+            DrawFilledRect(new Rectangle(rect.Right - (s - i), rect.Bottom - 1 - i, s - i, 1), mountColor);
+    }
+
+    /// <summary>
+    /// Tela de polígrafo de tubo de fósforo CRT com grade de fundo e feixe osciloscópico.
+    /// </summary>
+    private void DrawPolygraphOscilloscope(Rectangle rect, GameTime gameTime, int bpm, Color waveColor)
+    {
+        DrawPanel(rect, new Color(8, 14, 18), new Color(30, 48, 55), 1);
+
+        Color gridColor = new Color(25, 45, 50, 90);
+        for (int gx = rect.X + 8; gx < rect.Right - 4; gx += 16)
+        {
+            for (int gy = rect.Y + 4; gy < rect.Bottom - 4; gy += 8)
+            {
+                DrawFilledRect(new Rectangle(gx, gy, 1, 1), gridColor);
+            }
+        }
+
+        float speed = (bpm / 60f) * 3.8f;
+        float t = (float)gameTime.TotalGameTime.TotalSeconds * speed;
+
+        int lastY = rect.Center.Y;
+        for (int x = 4; x < rect.Width - 4; x += 2)
+        {
+            float phase = (x * 0.09f) - t;
+            float pulse = MathF.Sin(phase) * MathF.Pow(Math.Max(0, MathF.Cos(phase * 0.5f)), 6);
+            int y = rect.Center.Y - (int)(pulse * (rect.Height * 0.42f));
+
+            DrawFilledRect(new Rectangle(rect.X + x, y, 2, 2), waveColor);
+
+            if (Math.Abs(y - lastY) > 2)
+            {
+                int minY = Math.Min(y, lastY);
+                int maxY = Math.Max(y, lastY);
+                DrawFilledRect(new Rectangle(rect.X + x, minY, 1, maxY - minY), waveColor * 0.7f);
+            }
+            lastY = y;
+        }
+
+        int sweepX = rect.X + 4 + (int)((t * 22f) % (rect.Width - 8));
+        DrawFilledRect(new Rectangle(sweepX, rect.Y + 2, 2, rect.Height - 4), new Color(180, 255, 220, 45));
+    }
+
+    /// <summary>
+    /// Carimbo retro de borracha policial (estilo ARQUIVADO / CONDENADO / INOCENTE).
+    /// </summary>
+    private void DrawRetroStamp(Rectangle rect, string text, Color color, DynamicSpriteFont font)
+    {
+        DrawPanel(rect, color * 0.14f, color, 2);
+        var innerRect = new Rectangle(rect.X + 3, rect.Y + 3, rect.Width - 6, rect.Height - 6);
+        DrawFilledRect(new Rectangle(innerRect.X, innerRect.Y, innerRect.Width, 1), color * 0.5f);
+        DrawFilledRect(new Rectangle(innerRect.X, innerRect.Bottom - 1, innerRect.Width, 1), color * 0.5f);
+        DrawFilledRect(new Rectangle(innerRect.X, innerRect.Y, 1, innerRect.Height), color * 0.5f);
+        DrawFilledRect(new Rectangle(innerRect.Right - 1, innerRect.Y, 1, innerRect.Height), color * 0.5f);
+
+        var sz = font.MeasureString(text);
+        _spriteBatch.DrawString(font, text,
+            new Vector2(rect.X + (rect.Width - sz.X) / 2f, rect.Y + (rect.Height - sz.Y) / 2f),
+            color);
     }
 
     private static string WrapText(DynamicSpriteFont font, string text, float maxLineWidth)

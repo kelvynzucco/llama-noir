@@ -481,7 +481,7 @@ public class InterrogationState
         History.Add(new ChatLogEntry
         {
             Type = LogEntryType.GmNarration,
-            Speaker = "MESTRE DO JOGO",
+            Speaker = "OBSERVAÇÃO FORENSE",
             Text = openingGm,
             Turn = 0
         });
