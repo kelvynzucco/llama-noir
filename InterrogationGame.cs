@@ -14,12 +14,11 @@ namespace LlamaInterrogation;
 
 public class InterrogationGame : Game
 {
-    private const int WindowWidth = 1360;
-    private const int WindowHeight = 820;
-
     private readonly GraphicsDeviceManager _graphics;
     private SpriteBatch _spriteBatch = null!;
     private Texture2D _pixel = null!;
+    private Texture2D? _bgTexture;
+    private Texture2D? _badgeTexture;
     private FontSystem _fontSystem = null!;
     private RasterizerState _scissorRasterizer = null!;
 
@@ -49,6 +48,7 @@ public class InterrogationGame : Game
     private bool _lastCacheFocusMode = false;
     private bool _lastCacheWaitingLlm = false;
     private string _lastCacheCaseTitle = string.Empty;
+    private int _lastCacheInnerWidth = -1;
 
     // Animação suave das barras
     private float _displayTrust = 35f;
@@ -65,6 +65,27 @@ public class InterrogationGame : Game
     private KeyboardState _prevKeyboard;
     private double _cursorBlinkTimer = 0;
 
+    // P/Invoke para minimização robusta e nativa (SDL2 DesktopGL + Win32 fallback)
+    [System.Runtime.InteropServices.DllImport("SDL2.dll", CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
+    private static extern void SDL_MinimizeWindow(IntPtr window);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetActiveWindow();
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern IntPtr GetForegroundWindow();
+
+    private const int SW_MINIMIZE = 6;
+
+    private Point _virtualMousePos = Point.Zero;
+
+    // Regiões clicáveis da barra de título integrada
+    private Rectangle _windowMinimizeRect;
+    private Rectangle _windowCloseRect;
+
     // Regiões clicáveis da UI e estado de pistas anexadas
     private Rectangle _toggleViewModeRect;
     private Rectangle _newCaseButtonRect;
@@ -76,14 +97,18 @@ public class InterrogationGame : Game
 
     public InterrogationGame()
     {
+        var display = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode;
         _graphics = new GraphicsDeviceManager(this)
         {
-            PreferredBackBufferWidth = WindowWidth,
-            PreferredBackBufferHeight = WindowHeight,
+            PreferredBackBufferWidth = display.Width,
+            PreferredBackBufferHeight = display.Height,
+            IsFullScreen = true,
+            HardwareModeSwitch = false,
             SynchronizeWithVerticalRetrace = true
         };
         Window.Title = "DELEGACIA CENTRAL 1947 • SALA DE INTERROGATÓRIO NOIR";
         Window.AllowUserResizing = false;
+        Window.IsBorderless = true;
         IsMouseVisible = true;
     }
 
@@ -95,6 +120,13 @@ public class InterrogationGame : Game
         _state.NpcName = "Convocando Suspeito...";
         _state.NpcRole = "Verificando antecedentes criminais...";
         base.Initialize();
+
+        var display = GraphicsAdapter.DefaultAdapter.CurrentDisplayMode;
+        _graphics.PreferredBackBufferWidth = display.Width;
+        _graphics.PreferredBackBufferHeight = display.Height;
+        _graphics.IsFullScreen = true;
+        _graphics.HardwareModeSwitch = false;
+        _graphics.ApplyChanges();
 
         // Já abre o jogo encontrando e gerando um caso aleatório inédito!
         _ = GenerateNewProceduralCaseAsync();
@@ -110,6 +142,8 @@ public class InterrogationGame : Game
     {
         _llamafileProvider.Dispose();
         _scissorRasterizer?.Dispose();
+        _bgTexture?.Dispose();
+        _badgeTexture?.Dispose();
         base.Dispose(disposing);
     }
 
@@ -119,6 +153,32 @@ public class InterrogationGame : Game
         _pixel = new Texture2D(GraphicsDevice, 1, 1);
         _pixel.SetData(new[] { Color.White });
         _scissorRasterizer = new RasterizerState { ScissorTestEnable = true };
+
+        string assetsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "assets");
+        if (!Directory.Exists(assetsDir))
+            assetsDir = Path.Combine(Directory.GetCurrentDirectory(), "assets");
+
+        string bgFile = Path.Combine(assetsDir, "background.png");
+        if (File.Exists(bgFile))
+        {
+            try
+            {
+                using var stream = File.OpenRead(bgFile);
+                _bgTexture = Texture2D.FromStream(GraphicsDevice, stream);
+            }
+            catch { }
+        }
+
+        string badgeFile = Path.Combine(assetsDir, "Distintivo.png");
+        if (File.Exists(badgeFile))
+        {
+            try
+            {
+                using var stream = File.OpenRead(badgeFile);
+                _badgeTexture = Texture2D.FromStream(GraphicsDevice, stream);
+            }
+            catch { }
+        }
 
         _fontSystem = new FontSystem();
         string[] candidateFonts =
@@ -156,6 +216,8 @@ public class InterrogationGame : Game
 
         var keyboard = Keyboard.GetState();
         var mouse = Mouse.GetState();
+
+        _virtualMousePos = mouse.Position;
 
         // Atalhos de função
         if (keyboard.IsKeyDown(Keys.F3) && !_prevKeyboard.IsKeyDown(Keys.F3))
@@ -215,7 +277,19 @@ public class InterrogationGame : Game
             if (_typewriterCharsVisible < 600f)
                 _typewriterCharsVisible = 9999f;
 
-            Point mp = mouse.Position;
+            Point mp = _virtualMousePos;
+
+            // Controles da janela integrada
+            if (_windowCloseRect.Contains(mp))
+            {
+                Exit();
+                return;
+            }
+            else if (_windowMinimizeRect.Contains(mp))
+            {
+                MinimizeGameWindow();
+                return;
+            }
 
             if (_toggleViewModeRect.Contains(mp))
             {
@@ -263,6 +337,33 @@ public class InterrogationGame : Game
         _prevMouse = mouse;
         _prevKeyboard = keyboard;
         base.Update(gameTime);
+    }
+
+    private void MinimizeGameWindow()
+    {
+        try
+        {
+            SDL_MinimizeWindow(Window.Handle);
+        }
+        catch { }
+
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                IntPtr hwnd = GetActiveWindow();
+                if (hwnd == IntPtr.Zero)
+                    hwnd = GetForegroundWindow();
+                if (hwnd == IntPtr.Zero)
+                    hwnd = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+
+                if (hwnd != IntPtr.Zero)
+                {
+                    ShowWindow(hwnd, SW_MINIMIZE);
+                }
+            }
+            catch { }
+        }
     }
 
     private async Task GenerateNewProceduralCaseAsync()
@@ -536,119 +637,235 @@ public class InterrogationGame : Game
         _statusBanner = $"Turno {_state.CurrentTurn} de {_state.MaxTurns} • Sua vez de interrogar (faltam {_state.MaxTurns - _state.CurrentTurn + 1} turnos para o advogado chegar).";
     }
 
+    private readonly struct ResponsiveLayout
+    {
+        public int ScreenWidth { get; }
+        public int ScreenHeight { get; }
+        public int MarginX { get; }
+        public int TotalContentWidth { get; }
+        public Rectangle HeaderFolderRect { get; }
+        public Rectangle LeftPanelRect { get; }
+        public Rectangle CluesPanelRect { get; }
+        public Rectangle TimelineRect { get; }
+        public Rectangle StagePanelRect { get; }
+        public int OptionsAreaY { get; }
+        public int OptionsAreaHeight { get; }
+        public int RightX { get; }
+        public int RightWidth { get; }
+        public int FooterY { get; }
+
+        public ResponsiveLayout(int screenW, int screenH)
+        {
+            ScreenWidth = screenW;
+            ScreenHeight = screenH;
+
+            MarginX = Math.Clamp((screenW - 1476) / 4 + 36, 36, 56);
+            TotalContentWidth = screenW - MarginX * 2;
+
+            HeaderFolderRect = new Rectangle(MarginX, 84, TotalContentWidth, 76);
+
+            int leftW = Math.Clamp((int)(TotalContentWidth * 0.315f), 460, 520);
+            int rightW = TotalContentWidth - leftW - 16;
+            int rightX = MarginX + leftW + 16;
+
+            int suspectH = 394;
+            int availableH = Math.Max(700, screenH - 174 - 44);
+            int cluesH = availableH - suspectH - 12;
+            LeftPanelRect = new Rectangle(MarginX, 174, leftW, suspectH);
+            CluesPanelRect = new Rectangle(MarginX, 174 + suspectH + 12, leftW, cluesH);
+
+            int timelineH = 64;
+            TimelineRect = new Rectangle(rightX, 174, rightW, timelineH);
+
+            int optionsH = 248;
+            int stageH = availableH - timelineH - 10 - optionsH;
+            int stageY = 174 + timelineH + 10;
+            StagePanelRect = new Rectangle(rightX, stageY, rightW, stageH);
+
+            OptionsAreaY = stageY + stageH + 14;
+            OptionsAreaHeight = optionsH;
+
+            RightX = rightX;
+            RightWidth = rightW;
+            FooterY = 174 + availableH + 12;
+        }
+    }
+
+    private static ResponsiveLayout ComputeLayout(int screenW, int screenH) => new(screenW, screenH);
+
     protected override void Draw(GameTime gameTime)
     {
+        int screenW = GraphicsDevice.Viewport.Width;
+        int screenH = GraphicsDevice.Viewport.Height;
+        var layout = ComputeLayout(screenW, screenH);
+
         GraphicsDevice.Clear(new Color(13, 16, 23));
+
         _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp);
 
-        DrawTopBar(gameTime);
-        DrawLeftSuspectAndCluesPanel(gameTime);
-        DrawRightConversationPanel(gameTime);
+        if (_bgTexture != null)
+        {
+            // Background da sala do detetive cobrindo toda a janela/tela
+            _spriteBatch.Draw(_bgTexture, new Rectangle(0, 0, screenW, screenH), Color.White);
+
+            // Filtro de 50% de preto por cima do background conforme solicitado pelo usuário
+            DrawFilledRect(new Rectangle(0, 0, screenW, screenH), Color.Black * 0.50f);
+
+            // Máscara sutil para manter alto contraste e legibilidade nos painéis centrais
+            DrawFilledRect(new Rectangle(layout.MarginX - 8, 72, layout.TotalContentWidth + 16, layout.FooterY - 72 + 4), new Color(11, 15, 24, 185));
+        }
+
+        DrawTopBar(gameTime, layout);
+        DrawLeftSuspectAndCluesPanel(gameTime, layout);
+        DrawRightConversationPanel(gameTime, layout);
+        DrawFooterStatusBar(layout.MarginX, layout.FooterY, layout.TotalContentWidth);
 
         _spriteBatch.End();
+
         base.Draw(gameTime);
     }
 
-    private void DrawTopBar(GameTime gameTime)
+    private void DrawTopBar(GameTime gameTime, ResponsiveLayout layout)
     {
         var fontTitle = _fontSystem.GetFont(22);
         var fontObj = _fontSystem.GetFont(17);
-        var fontSub = _fontSystem.GetFont(15);
+        var fontSub = _fontSystem.GetFont(16);
+        var fontSmall = _fontSystem.GetFont(15);
 
-        // 1. HEADER PRINCIPAL (Y = 0, Altura = 48)
-        var topRect = new Rectangle(0, 0, WindowWidth, 48);
-        DrawPanel(topRect, new Color(19, 24, 35), new Color(40, 50, 72), 1);
+        // 1. BARRA SUPERIOR INTEGRADA DA JANELA (X = 0, Y = 0, Largura = tela, Altura = 68)
+        var topRect = new Rectangle(0, 0, layout.ScreenWidth, 68);
+        DrawPanel(topRect, new Color(14, 18, 28, 252), new Color(42, 68, 110), 1, new Color(22, 36, 60));
+        DrawFilledRect(new Rectangle(0, 67, layout.ScreenWidth, 1), new Color(202, 138, 4, 180));
+        DrawCornerRivets(new Rectangle(12, 10, layout.ScreenWidth - 24, 48), new Color(250, 204, 21));
 
-        // Distintivo policial dourado em pixel art ao lado do título
-        DrawPixelBadge(18, 16, new Color(250, 204, 21));
-
-        string rawTitle = _isGeneratingCase ? "ABRINDO NOVO INQUÉRITO FORENSE..." : _state.CaseTitle;
-        var fTitle = fontTitle.MeasureString(rawTitle).X <= 750 ? fontTitle : _fontSystem.GetFont(18);
-        string titleDisplay = TruncateText(fTitle, rawTitle, 750);
-        _spriteBatch.DrawString(fTitle, titleDisplay, new Vector2(40, 13), new Color(240, 244, 255));
-
-        // Indicador de Gravação Forense Contínua (Sem alternância, sempre gravando o interrogatório)
-        int recX = WindowWidth - 530;
-        DrawPixelTapeRecorder(recX, 16, gameTime, true);
-        _spriteBatch.DrawString(fontSub, "GRAVAÇÃO FORENSE", new Vector2(recX + 28, 15), new Color(156, 175, 205));
-
-        // Botão de Modo de Visualização (Cena Atual vs Histórico Completo)
-        _toggleViewModeRect = new Rectangle(WindowWidth - 340, 6, 160, 36);
-        bool hoverView = _toggleViewModeRect.Contains(_prevMouse.Position);
-        DrawPanel(_toggleViewModeRect,
-            hoverView ? new Color(45, 58, 82) : new Color(30, 38, 56),
-            _focusCurrentTurnOnly ? new Color(56, 189, 248) : new Color(85, 100, 135), 1);
-        DrawPixelMagnifyingGlass(_toggleViewModeRect.X + 8, _toggleViewModeRect.Y + 11, _focusCurrentTurnOnly ? new Color(56, 189, 248) : new Color(160, 175, 205));
-        string viewText = _focusCurrentTurnOnly ? "[F3] Turno Atual" : "[F3] Arquivo Geral";
-        _spriteBatch.DrawString(fontSub, viewText, new Vector2(_toggleViewModeRect.X + 28, _toggleViewModeRect.Y + 8), Color.White);
-
-        // Botão de Gerar Novo Inquérito Policial
-        _newCaseButtonRect = new Rectangle(WindowWidth - 170, 6, 154, 36);
-        bool hoverReset = _newCaseButtonRect.Contains(_prevMouse.Position);
-        DrawPanel(_newCaseButtonRect,
-            _isGeneratingCase ? new Color(75, 60, 24) : (hoverReset ? new Color(98, 48, 120) : new Color(68, 34, 88)),
-            new Color(192, 132, 252), 1);
-        DrawPixelFolder(_newCaseButtonRect.X + 8, _newCaseButtonRect.Y + 12, new Color(250, 204, 21));
-        string newCaseLabel = _isGeneratingCase ? "Buscando Arquivo..." : "[F5] NOVO CASO";
-        _spriteBatch.DrawString(fontSub, newCaseLabel, new Vector2(_newCaseButtonRect.X + 30, _newCaseButtonRect.Y + 8), new Color(245, 230, 255));
-
-        // 2. BARRA DE CONTEXTO NOIR + OBJETIVO EM DESTAQUE ABAIXO DO HEADER (Centralizada e sem cortar o texto)
-        // 2. BARRA DE CONTEXTO NOIR + OBJETIVO EM DESTAQUE ABAIXO DO HEADER (Sem cortar textos)
-        var objBannerRect = new Rectangle(16, 52, WindowWidth - 32, 48);
-        DrawPanel(objBannerRect, new Color(30, 24, 14), new Color(234, 179, 8), 2);
-        DrawFilledRect(new Rectangle(objBannerRect.X, objBannerRect.Y, 5, objBannerRect.Height), new Color(250, 204, 21));
-        DrawFilledRect(new Rectangle(objBannerRect.Right - 5, objBannerRect.Y, 5, objBannerRect.Height), new Color(250, 204, 21));
-
-        string rawObj = _isGeneratingCase ? "Abrindo novos arquivos da delegacia..." : _state.CaseObjective;
-        float maxObjWidth = objBannerRect.Width - 32f;
-
-        if (_isGeneratingCase || !rawObj.Contains('\n'))
+        // Distintivo policial (renderiza a imagem oficial ou o fallback procedural)
+        if (_badgeTexture != null)
         {
-            var fontClean = fontObj.MeasureString(rawObj).X <= maxObjWidth ? fontObj : _fontSystem.GetFont(14);
-            var sz = fontClean.MeasureString(rawObj);
-            float ox = objBannerRect.X + Math.Max(12, (objBannerRect.Width - sz.X) / 2f);
-            float oy = objBannerRect.Y + (objBannerRect.Height - sz.Y) / 2f;
-            _spriteBatch.DrawString(fontClean, rawObj, new Vector2(ox, oy), new Color(254, 240, 138));
+            _spriteBatch.Draw(_badgeTexture, new Rectangle(20, 7, 36, 54), Color.White);
         }
         else
         {
-            // Exibe Linha 1 (CONTEXTO do crime Noir) + Linha 2 (OBJETIVO em destaque dourado) sem cortes
-            string[] parts = rawObj.Split('\n', 2, StringSplitOptions.RemoveEmptyEntries);
-            string contextLine = parts[0].Trim();
-            string objectiveLine = parts.Length > 1 ? parts[1].Trim() : string.Empty;
-
-            var fontCtx = fontSub.MeasureString(contextLine).X <= maxObjWidth ? fontSub : _fontSystem.GetFont(13);
-            var fontGoal = fontObj.MeasureString(objectiveLine).X <= maxObjWidth ? fontObj : _fontSystem.GetFont(14);
-
-            var ctxSize = fontCtx.MeasureString(contextLine);
-            float ctxX = objBannerRect.X + Math.Max(12, (objBannerRect.Width - ctxSize.X) / 2f);
-            _spriteBatch.DrawString(fontCtx, contextLine, new Vector2(ctxX, objBannerRect.Y + 6), new Color(226, 232, 240));
-
-            if (!string.IsNullOrEmpty(objectiveLine))
-            {
-                var objSize = fontGoal.MeasureString(objectiveLine);
-                float objX = objBannerRect.X + Math.Max(12, (objBannerRect.Width - objSize.X) / 2f);
-                _spriteBatch.DrawString(fontGoal, objectiveLine, new Vector2(objX, objBannerRect.Y + 26), new Color(250, 204, 21));
-            }
+            DrawPixelBadge(20, 16, new Color(250, 204, 21));
         }
+
+        // Título da Delegacia e Departamento Noir integrado à barra de título
+        _spriteBatch.DrawString(fontTitle, "DELEGACIA CENTRAL 1947", new Vector2(68, 13), new Color(254, 240, 138));
+        _spriteBatch.DrawString(fontSub, "SALA DE INTERROGATÓRIO NOIR • DEPARTAMENTO DE HOMICÍDIOS", new Vector2(68, 38), new Color(186, 230, 253));
+
+        // --- CONTROLES DE JANELA INTEGRADOS (Canto Superior Direito) ---
+        // Botão Fechar [X]
+        _windowCloseRect = new Rectangle(layout.ScreenWidth - 46, 16, 32, 32);
+        bool hoverClose = _windowCloseRect.Contains(_virtualMousePos);
+        DrawPanel(_windowCloseRect,
+            hoverClose ? new Color(185, 28, 28) : new Color(26, 34, 48),
+            hoverClose ? new Color(248, 113, 113) : new Color(64, 88, 128),
+            1);
+        DrawPixelWindowClose(_windowCloseRect.X + 11, _windowCloseRect.Y + 11, hoverClose ? Color.White : new Color(200, 215, 235));
+
+        // Botão Minimizar [-]
+        _windowMinimizeRect = new Rectangle(_windowCloseRect.Left - 38, 16, 32, 32);
+        bool hoverMin = _windowMinimizeRect.Contains(_virtualMousePos);
+        DrawPanel(_windowMinimizeRect,
+            hoverMin ? new Color(42, 60, 92) : new Color(26, 34, 48),
+            hoverMin ? new Color(96, 165, 250) : new Color(64, 88, 128),
+            1);
+        DrawPixelWindowMinimize(_windowMinimizeRect.X + 11, _windowMinimizeRect.Y + 11, hoverMin ? Color.White : new Color(200, 215, 235));
+
+        // Separador vertical entre controles de janela e botões de jogo
+        DrawFilledRect(new Rectangle(_windowMinimizeRect.Left - 14, 18, 1, 30), new Color(48, 72, 112));
+
+        // --- BOTÕES DO JOGO ---
+        // Botão [F5] NOVO CASO
+        _newCaseButtonRect = new Rectangle(_windowMinimizeRect.Left - 14 - 158 - 12, 13, 158, 42);
+        bool hoverReset = _newCaseButtonRect.Contains(_virtualMousePos);
+        DrawPanel(_newCaseButtonRect,
+            _isGeneratingCase ? new Color(75, 55, 25) : (hoverReset ? new Color(105, 45, 60) : new Color(75, 30, 45)),
+            new Color(244, 114, 182), 1, new Color(180, 70, 100));
+        DrawPixelFolder(_newCaseButtonRect.X + 10, _newCaseButtonRect.Y + 14, new Color(250, 204, 21));
+        string newCaseLabel = _isGeneratingCase ? "Buscando..." : "[F5] NOVO CASO";
+        var newCaseSize = fontSub.MeasureString(newCaseLabel);
+        float newCaseY = _newCaseButtonRect.Y + (_newCaseButtonRect.Height - newCaseSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSub, newCaseLabel, new Vector2(_newCaseButtonRect.X + 32, newCaseY), new Color(245, 230, 255));
+
+        // Botão [F3] ARQUIVO GERAL / TURNO ATUAL
+        _toggleViewModeRect = new Rectangle(_newCaseButtonRect.Left - 184 - 10, 13, 184, 42);
+        bool hoverView = _toggleViewModeRect.Contains(_virtualMousePos);
+        DrawPanel(_toggleViewModeRect,
+            hoverView ? new Color(36, 52, 78) : new Color(22, 34, 52),
+            _focusCurrentTurnOnly ? new Color(56, 189, 248) : new Color(64, 88, 128), 1, new Color(38, 58, 88));
+        DrawPixelMagnifyingGlass(_toggleViewModeRect.X + 10, _toggleViewModeRect.Y + 14, _focusCurrentTurnOnly ? new Color(56, 189, 248) : new Color(160, 175, 205));
+        string viewText = _focusCurrentTurnOnly ? "[F3] TURNO ATUAL" : "[F3] ARQUIVO GERAL";
+        var viewSize = fontSub.MeasureString(viewText);
+        float viewY = _toggleViewModeRect.Y + (_toggleViewModeRect.Height - viewSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSub, viewText, new Vector2(_toggleViewModeRect.X + 30, viewY), Color.White);
+
+        // Badge de Código do Caso
+        var caseBadgeRect = new Rectangle(_toggleViewModeRect.Left - 152 - 10, 13, 152, 42);
+        DrawPanel(caseBadgeRect, new Color(42, 32, 16), new Color(234, 179, 8), 2, new Color(120, 80, 20));
+        DrawPixelFolder(caseBadgeRect.X + 12, caseBadgeRect.Y + 14, new Color(250, 204, 21));
+        string caseCodeText = $"CASO #{Math.Abs(_state.CaseTitle.GetHashCode()) % 900 + 100}";
+        var caseCodeSize = fontSub.MeasureString(caseCodeText);
+        float codeY = caseBadgeRect.Y + (caseBadgeRect.Height - caseCodeSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSub, caseCodeText, new Vector2(caseBadgeRect.X + 36, codeY), new Color(254, 240, 138));
+
+        // Gravador de Rolo Magnetofônico Contínuo
+        int recX = caseBadgeRect.Left - 188;
+        DrawPixelTapeRecorder(recX, 24, gameTime, true);
+        var recLabelSize = fontSub.MeasureString("GRAVAÇÃO FORENSE");
+        float recLabelY = 24 + (18 - recLabelSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSub, "GRAVAÇÃO FORENSE", new Vector2(recX + 28, recLabelY), new Color(156, 175, 205));
+
+        // 2. DOSSIÊ DO INQUÉRITO: PASTA PARDA ESTILO NOIR
+        var objBannerRect = layout.HeaderFolderRect;
+        DrawPanel(objBannerRect, new Color(42, 30, 20, 250), new Color(202, 138, 4), 2, new Color(110, 75, 20));
+        DrawCornerRivets(objBannerRect, new Color(250, 204, 21));
+
+        // Aba no topo da pasta do caso
+        DrawFilledRect(new Rectangle(objBannerRect.X + 16, objBannerRect.Y - 3, 180, 4), new Color(250, 204, 21));
+
+        string rawTitle = _isGeneratingCase ? "ABRINDO NOVO INQUÉRITO FORENSE..." : _state.CaseTitle;
+        string rawObj = _isGeneratingCase ? "Consultando arquivos confidenciais da delegacia..." : _state.CaseObjective;
+
+        // Título do Caso no topo da pasta
+        _spriteBatch.DrawString(fontTitle, rawTitle, new Vector2(objBannerRect.X + 22, objBannerRect.Y + 7), new Color(254, 240, 138));
+
+        // Placa interna escura do Objetivo
+        var objPlateRect = new Rectangle(objBannerRect.X + 16, objBannerRect.Y + 35, objBannerRect.Width - 32, 32);
+        DrawPanel(objPlateRect, new Color(18, 14, 10), new Color(160, 115, 25), 1);
+
+        var badgeRect = new Rectangle(objPlateRect.X + 4, objPlateRect.Y + 4, 104, 24);
+        DrawPanel(badgeRect, new Color(55, 42, 18), new Color(250, 204, 21), 1);
+        var badgeTextSize = fontSmall.MeasureString("OBJETIVO:");
+        float badgeTextY = badgeRect.Y + (badgeRect.Height - badgeTextSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSmall, "OBJETIVO:", new Vector2(badgeRect.X + (badgeRect.Width - badgeTextSize.X) / 2f, badgeTextY), new Color(250, 204, 21));
+
+        string cleanObj = rawObj.Replace("\r\n", " ").Replace('\n', ' ');
+        string safeObj = TruncateText(fontObj, cleanObj, objPlateRect.Width - 130);
+        var objTextSize = fontObj.MeasureString(safeObj);
+        float objTextY = objPlateRect.Y + (objPlateRect.Height - objTextSize.Y) / 2f;
+        _spriteBatch.DrawString(fontObj, safeObj, new Vector2(badgeRect.Right + 12, objTextY), new Color(254, 240, 138));
     }
 
-    private void DrawLeftSuspectAndCluesPanel(GameTime gameTime)
+    private void DrawLeftSuspectAndCluesPanel(GameTime gameTime, ResponsiveLayout layout)
     {
-        var fontHeader = _fontSystem.GetFont(20);
-        var fontBody = _fontSystem.GetFont(16);
-        var fontSmall = _fontSystem.GetFont(14);
-        var fontTiny = _fontSystem.GetFont(13);
+        var fontHeader = _fontSystem.GetFont(22);
+        var fontBody = _fontSystem.GetFont(18);
+        var fontSmall = _fontSystem.GetFont(16);
+        var fontTiny = _fontSystem.GetFont(14.5f);
 
-        // Painel do Suspeito (X=16, Y=106, Largura=440, Altura=400)
-        var suspectPanel = new Rectangle(16, 106, 440, 400);
-        DrawPanel(suspectPanel, new Color(20, 24, 34), new Color(46, 56, 78), 1);
+        int leftX = layout.LeftPanelRect.X;
+        int leftWidth = layout.LeftPanelRect.Width;
 
-        var portraitRect = new Rectangle(30, 120, 148, 156);
+        // 1. PAINEL DO SUSPEITO
+        var suspectPanel = layout.LeftPanelRect;
+        DrawPanel(suspectPanel, new Color(14, 18, 28, 245), new Color(45, 75, 120), 2, new Color(24, 38, 62));
+        DrawCornerRivets(suspectPanel, new Color(96, 165, 250));
+
+        var portraitRect = new Rectangle(leftX + 16, 190, 140, 148);
         if (_isGeneratingCase)
         {
             DrawPanel(portraitRect, new Color(14, 18, 26), new Color(96, 165, 250), 2);
-            DrawAnimatedMagnifyingGlass(portraitRect.Center.X, portraitRect.Center.Y, 22, gameTime);
+            DrawAnimatedMagnifyingGlass(portraitRect.Center.X, portraitRect.Center.Y, 24, gameTime);
         }
         else
         {
@@ -656,45 +873,48 @@ public class InterrogationGame : Game
             DrawCornerPhotoMounts(portraitRect, new Color(85, 95, 115));
         }
 
-        int infoX = 192;
-        int infoWidth = suspectPanel.Right - infoX - 14; // ~234px
+        int infoX = portraitRect.Right + 14;
+        int infoWidth = suspectPanel.Right - infoX - 16;
         string displayNpcName = _isGeneratingCase ? "Identificando..." : _state.NpcName;
         string displayNpcRole = _isGeneratingCase ? "Buscando antecedentes..." : _state.NpcRole;
 
         // Nome do suspeito com ajuste inteligente de fonte
-        var fontName = fontHeader.MeasureString(displayNpcName).X <= infoWidth ? fontHeader : _fontSystem.GetFont(16);
-        _spriteBatch.DrawString(fontName, displayNpcName, new Vector2(infoX, 118), new Color(240, 244, 255));
+        var fontName = fontHeader.MeasureString(displayNpcName).X <= infoWidth ? fontHeader : _fontSystem.GetFont(18);
+        _spriteBatch.DrawString(fontName, displayNpcName, new Vector2(infoX, 190), new Color(240, 244, 255));
 
-        // Profissão / Papel do suspeito com auto-ajuste de linha
+        // Profissão / Papel do suspeito
         var fontRole = fontTiny;
         string wrappedRole = WrapText(fontRole, displayNpcRole, infoWidth);
-        if (fontRole.MeasureString(wrappedRole).Y > 30)
+        if (fontRole.MeasureString(wrappedRole).Y > 32)
         {
-            fontRole = _fontSystem.GetFont(11.5f);
+            fontRole = _fontSystem.GetFont(13f);
             wrappedRole = WrapText(fontRole, displayNpcRole, infoWidth);
         }
-        _spriteBatch.DrawString(fontRole, wrappedRole, new Vector2(infoX, 142), new Color(165, 180, 210));
+        _spriteBatch.DrawString(fontRole, wrappedRole, new Vector2(infoX, 218), new Color(165, 180, 210));
 
         // Postura Emocional
         Color emotionColor = GetEmotionColor(_state.Emotion);
-        var emotionBox = new Rectangle(infoX, 176, 192, 28);
+        string emotionText = $"Postura: {_state.Emotion.ToString().ToUpperInvariant()}";
+        var emSize = fontSmall.MeasureString(emotionText);
+        var emotionBox = new Rectangle(infoX, 244, (int)emSize.X + 22, 28);
         DrawPanel(emotionBox, emotionColor * 0.22f, emotionColor, 1);
-        _spriteBatch.DrawString(fontSmall, $"Postura: {_state.Emotion.ToString().ToUpperInvariant()}",
-            new Vector2(emotionBox.X + 8, emotionBox.Y + 5), emotionColor);
+        float emTextY = emotionBox.Y + (emotionBox.Height - emSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSmall, emotionText,
+            new Vector2(emotionBox.X + 11, emTextY), emotionColor);
 
-        // Cinzeiro com cigarro e fumaça animada na sala de interrogatório
-        DrawPixelCigaretteSmoke(infoX + 204, 184, gameTime);
+        // Cinzeiro com cigarro e fumaça animada
+        DrawPixelCigaretteSmoke(infoX + 220, 250, gameTime);
 
         // Polígrafo Forense
         int bpm = 68 + (int)(_displayStress * 0.72f);
         _spriteBatch.DrawString(fontTiny, $"Polígrafo Forense: {bpm} BPM",
-            new Vector2(infoX, 212), bpm > 115 ? new Color(255, 110, 110) : new Color(130, 210, 175));
-        DrawPolygraphOscilloscope(new Rectangle(infoX, 230, infoWidth, 26), gameTime, bpm, bpm > 115 ? new Color(244, 63, 94) : new Color(52, 211, 153));
+            new Vector2(infoX, 278), bpm > 115 ? new Color(255, 110, 110) : new Color(130, 210, 175));
+        DrawPolygraphOscilloscope(new Rectangle(infoX, 296, infoWidth, 26), gameTime, bpm, bpm > 115 ? new Color(244, 63, 94) : new Color(52, 211, 153));
 
-        // Medidores Psicológicos & Investigativos (Espaçamento padronizado de 68px, sem sobreposição)
-        int meterY = 274;
-        int meterWidth = suspectPanel.Width - 28;
-        int meterX = suspectPanel.X + 14;
+        // Medidores Psicológicos & Investigativos
+        int meterY = 338;
+        int meterWidth = suspectPanel.Width - 32;
+        int meterX = suspectPanel.X + 16;
 
         DrawMeterBar(new Rectangle(meterX, meterY, meterWidth, 52),
             "CONFIANÇA DO SUSPEITO",
@@ -703,77 +923,87 @@ public class InterrogationGame : Game
             new Color(56, 189, 248),
             "Sobe com empatia e acordos. Evite hostilidade sem provas.");
 
-        DrawMeterBar(new Rectangle(meterX, meterY + 68, meterWidth, 52),
+        DrawMeterBar(new Rectangle(meterX, meterY + 62, meterWidth, 52),
             "PRESSÃO PSICOLÓGICA (LIMITE: 100%)",
             $"{_state.Stress}%",
             _displayStress / 100f,
             _state.Stress >= 75 ? new Color(244, 63, 94) : new Color(245, 158, 11),
             "Em 100%, o suspeito cala-se ou sofre colapso emocional.");
 
-        DrawMeterBar(new Rectangle(meterX, meterY + 136, meterWidth, 52),
+        DrawMeterBar(new Rectangle(meterX, meterY + 124, meterWidth, 52),
             "PROGRESSO DO INQUÉRITO (META: 100%)",
             $"{_state.CaseProgress}%",
             _displayProgress / 100f,
             new Color(52, 211, 153),
             "Ao atingir 100%, a verdade factual é totalmente elucidada.");
 
-        // Dossiê de Evidências Forenses (X=16, Y=514, Largura=440, Altura=292)
-        var cluesPanel = new Rectangle(16, 514, 440, 292);
-        DrawPanel(cluesPanel, new Color(20, 24, 34), new Color(46, 56, 78), 1);
-        DrawPixelFolder(30, 526, new Color(250, 204, 21));
-        _spriteBatch.DrawString(fontBody, "DOSSIÊ DE EVIDÊNCIAS FORENSES", new Vector2(52, 522), new Color(250, 204, 21));
-        _spriteBatch.DrawString(fontTiny, "Clique em uma evidência para anexá-la ao seu próximo confronto:", new Vector2(30, 544), new Color(145, 165, 195));
+        // 2. DOSSIÊ DE EVIDÊNCIAS FORENSES
+        var cluesPanel = layout.CluesPanelRect;
+        DrawPanel(cluesPanel, new Color(14, 18, 28, 245), new Color(45, 75, 120), 2, new Color(24, 38, 62));
+        DrawCornerRivets(cluesPanel, new Color(96, 165, 250));
+
+        DrawPixelFolder(cluesPanel.X + 16, cluesPanel.Y + 12, new Color(250, 204, 21));
+        var dossieSize = fontBody.MeasureString("DOSSIÊ DE EVIDÊNCIAS FORENSES");
+        float dossieY = cluesPanel.Y + 12 + (14 - dossieSize.Y) / 2f;
+        _spriteBatch.DrawString(fontBody, "DOSSIÊ DE EVIDÊNCIAS FORENSES", new Vector2(cluesPanel.X + 38, dossieY), new Color(250, 204, 21));
+        _spriteBatch.DrawString(fontTiny, "Clique em uma evidência para anexá-la ao seu próximo confronto:", new Vector2(cluesPanel.X + 16, cluesPanel.Y + 32), new Color(145, 165, 195));
 
         _clueRects.Clear();
         if (_isGeneratingCase)
         {
-            _spriteBatch.DrawString(fontBody, "Abrindo arquivos confidenciais...", new Vector2(32, 574), new Color(168, 180, 205));
+            _spriteBatch.DrawString(fontBody, "Abrindo arquivos confidenciais...", new Vector2(cluesPanel.X + 24, cluesPanel.Y + 60), new Color(168, 180, 205));
         }
         else
         {
             var visibleClues = _state.Clues.Take(4).ToList();
             int clueCount = visibleClues.Count;
-            int cardH = clueCount <= 3 ? 66 : 54;
-            int gap = clueCount <= 3 ? 8 : 5;
-            int clueY = 564;
+            int cardH = clueCount <= 3 ? 68 : 58;
+            int gap = clueCount <= 3 ? 8 : 6;
+            int clueY = cluesPanel.Y + 54;
 
             foreach (var clue in visibleClues)
             {
-                var cardRect = new Rectangle(28, clueY, cluesPanel.Width - 24, cardH);
-                bool hovered = cardRect.Contains(_prevMouse.Position);
+                var cardRect = new Rectangle(cluesPanel.X + 12, clueY, cluesPanel.Width - 24, cardH);
+                bool hovered = cardRect.Contains(_virtualMousePos);
                 bool isSelected = ReferenceEquals(clue, _selectedClue);
 
                 Color cardBg;
                 Color cardBorder;
+                Color innerBorder;
                 int borderThickness = 1;
 
                 if (isSelected)
                 {
-                    cardBg = new Color(55, 45, 18);
+                    cardBg = new Color(55, 45, 18, 250);
                     cardBorder = new Color(250, 204, 21);
+                    innerBorder = new Color(130, 95, 20);
                     borderThickness = 2;
                 }
                 else if (clue.IsNew)
                 {
-                    cardBg = new Color(50, 42, 22);
+                    cardBg = new Color(46, 38, 20, 245);
                     cardBorder = new Color(234, 179, 8);
+                    innerBorder = new Color(90, 68, 16);
                 }
                 else
                 {
-                    cardBg = hovered ? new Color(34, 42, 60) : new Color(26, 32, 46);
-                    cardBorder = hovered ? new Color(100, 150, 220) : new Color(48, 58, 82);
+                    cardBg = hovered ? new Color(30, 42, 64, 250) : new Color(18, 24, 38, 245);
+                    cardBorder = hovered ? new Color(100, 160, 235) : new Color(42, 60, 90);
+                    innerBorder = new Color(22, 34, 52);
                 }
 
-                DrawPanel(cardRect, cardBg, cardBorder, borderThickness);
+                DrawPanel(cardRect, cardBg, cardBorder, borderThickness, innerBorder);
+
+                // Miniatura pixelart de pasta/prova forense
+                DrawPixelEvidenceCardIcon(cardRect.X + 8, cardRect.Y + (cardRect.Height - 24) / 2, isSelected ? new Color(250, 204, 21) : new Color(160, 125, 60));
 
                 string actionLabel = isSelected ? "[Soltar]" : (hovered ? "[Anexar]" : "");
                 int actWidth = 0;
+                Vector2 actSz = Vector2.Zero;
                 if (!string.IsNullOrEmpty(actionLabel))
                 {
-                    Color actionCol = isSelected ? new Color(250, 204, 21) : new Color(147, 197, 253);
-                    var actSz = fontTiny.MeasureString(actionLabel);
+                    actSz = fontTiny.MeasureString(actionLabel);
                     actWidth = (int)actSz.X + 8;
-                    _spriteBatch.DrawString(fontTiny, actionLabel, new Vector2(cardRect.Right - actSz.X - 10, cardRect.Y + 4), actionCol);
                 }
 
                 string titleText = isSelected
@@ -781,19 +1011,32 @@ public class InterrogationGame : Game
                     : (clue.IsNew ? $"★ [NOVA] {clue.Title}" : $"• {clue.Title}");
                 Color titleColor = isSelected ? new Color(254, 240, 138) : (clue.IsNew ? new Color(254, 240, 138) : new Color(225, 235, 252));
 
-                int maxTitleWidth = cardRect.Width - actWidth - 20;
+                int maxTitleWidth = cardRect.Width - actWidth - 44;
                 string safeTitle = TruncateText(fontSmall, titleText, maxTitleWidth);
-                _spriteBatch.DrawString(fontSmall, safeTitle, new Vector2(cardRect.X + 10, cardRect.Y + 3), titleColor);
+                var titleSz = fontSmall.MeasureString(safeTitle);
 
-                // Descrição com ajuste dinâmico para nunca cortar
+                // Descrição com ajuste dinâmico
                 var fDesc = fontTiny;
-                string wrappedDesc = WrapText(fDesc, clue.Description, cardRect.Width - 20);
-                if (fDesc.MeasureString(wrappedDesc).Y > cardH - 22)
+                string wrappedDesc = WrapText(fDesc, clue.Description, cardRect.Width - 46);
+                var descSz = fDesc.MeasureString(wrappedDesc);
+                if (descSz.Y > cardH - titleSz.Y - 14)
                 {
-                    fDesc = _fontSystem.GetFont(11.5f);
-                    wrappedDesc = WrapText(fDesc, clue.Description, cardRect.Width - 20);
+                    fDesc = _fontSystem.GetFont(13f);
+                    wrappedDesc = WrapText(fDesc, clue.Description, cardRect.Width - 46);
+                    descSz = fDesc.MeasureString(wrappedDesc);
                 }
-                _spriteBatch.DrawString(fDesc, wrappedDesc, new Vector2(cardRect.X + 10, cardRect.Y + 20), new Color(175, 190, 215));
+
+                float totalContentH = titleSz.Y + descSz.Y + 2;
+                float startContentY = cardRect.Y + (cardRect.Height - totalContentH) / 2f;
+
+                if (!string.IsNullOrEmpty(actionLabel))
+                {
+                    Color actionCol = isSelected ? new Color(250, 204, 21) : new Color(147, 197, 253);
+                    _spriteBatch.DrawString(fontTiny, actionLabel, new Vector2(cardRect.Right - actSz.X - 10, startContentY), actionCol);
+                }
+
+                _spriteBatch.DrawString(fontSmall, safeTitle, new Vector2(cardRect.X + 34, startContentY), titleColor);
+                _spriteBatch.DrawString(fDesc, wrappedDesc, new Vector2(cardRect.X + 34, startContentY + titleSz.Y + 2), new Color(175, 190, 215));
 
                 _clueRects.Add((cardRect, clue));
                 clueY += cardH + gap;
@@ -801,33 +1044,34 @@ public class InterrogationGame : Game
         }
     }
 
-    private void DrawRightConversationPanel(GameTime gameTime)
+    private void DrawRightConversationPanel(GameTime gameTime, ResponsiveLayout layout)
     {
-        var fontTitle = _fontSystem.GetFont(20);
-        var fontNpc = _fontSystem.GetFont(20);
-        var fontBody = _fontSystem.GetFont(18);
-        var fontSmall = _fontSystem.GetFont(15);
+        var fontTitle = _fontSystem.GetFont(22);
+        var fontNpc = _fontSystem.GetFont(22);
+        var fontBody = _fontSystem.GetFont(20);
+        var fontSmall = _fontSystem.GetFont(16.5f);
 
-        int rightX = 472;
-        int rightWidth = WindowWidth - rightX - 16;
+        int rightX = layout.RightX;
+        int rightWidth = layout.RightWidth;
 
         // 1. BARRA VISUAL DE LINHA DO TEMPO DE TURNOS
-        var timelineRect = new Rectangle(rightX, 106, rightWidth, 58);
+        var timelineRect = layout.TimelineRect;
         DrawTurnTimelineBar(timelineRect, fontTitle, fontSmall);
 
         // 2. PALCO DE DIÁLOGO E NARRATIVA
-        var stagePanel = new Rectangle(rightX, 170, rightWidth, 378);
-        DrawPanel(stagePanel, new Color(17, 21, 30), new Color(46, 56, 78), 1);
+        var stagePanel = layout.StagePanelRect;
+        DrawPanel(stagePanel, new Color(14, 18, 28, 245), new Color(45, 75, 120), 2, new Color(24, 38, 62));
+        DrawCornerRivets(stagePanel, new Color(96, 165, 250));
 
         if (_isGeneratingCase)
         {
             int dots = ((int)(gameTime.TotalGameTime.TotalSeconds * 3) % 3) + 1;
             string dotsStr = new('.', dots);
-            var genBox = new Rectangle(stagePanel.X + 60, stagePanel.Y + 70, stagePanel.Width - 120, 230);
+            var genBox = new Rectangle(stagePanel.X + 120, stagePanel.Y + 60, stagePanel.Width - 240, 240);
             DrawPanel(genBox, new Color(24, 30, 46), new Color(250, 204, 21), 2);
 
             // Desenha a Lupa Animada no centro superior do card
-            DrawAnimatedMagnifyingGlass(genBox.Center.X, genBox.Y + 86, 34, gameTime);
+            DrawAnimatedMagnifyingGlass(genBox.Center.X, genBox.Y + 86, 36, gameTime);
 
             var fontSearch = _fontSystem.GetFont(24);
             string searchTitle = $"Abrindo arquivos confidenciais{dotsStr}";
@@ -845,7 +1089,8 @@ public class InterrogationGame : Game
                 _lastCacheTypewriterChars != currentTypewriterInt ||
                 _lastCacheFocusMode != _focusCurrentTurnOnly ||
                 _lastCacheWaitingLlm != _isWaitingForLlm ||
-                _lastCacheCaseTitle != _state.CaseTitle;
+                _lastCacheCaseTitle != _state.CaseTitle ||
+                _lastCacheInnerWidth != innerWidth;
 
             if (needsRebuild)
             {
@@ -854,6 +1099,7 @@ public class InterrogationGame : Game
                 _lastCacheFocusMode = _focusCurrentTurnOnly;
                 _lastCacheWaitingLlm = _isWaitingForLlm;
                 _lastCacheCaseTitle = _state.CaseTitle;
+                _lastCacheInnerWidth = innerWidth;
 
                 _cachedLayoutBlocks.Clear();
                 _cachedTotalContentHeight = 18;
@@ -939,17 +1185,18 @@ public class InterrogationGame : Game
         _dialogueOptionRects.Clear();
         var activeOptions = _state.GetActiveDialogueOptions(4);
 
-        int optionsAreaY = 556;
-        int optionsAreaHeight = 250;
+        int optionsAreaY = layout.OptionsAreaY;
+        int optionsAreaHeight = layout.OptionsAreaHeight;
 
         if (_state.Outcome != GameOutcome.EmAndamento)
         {
             _clearClueButtonRect = Rectangle.Empty;
             var endPanelRect = new Rectangle(rightX, optionsAreaY, rightWidth, optionsAreaHeight);
             bool isVictory = _state.Outcome is GameOutcome.VitoriaConfissao or GameOutcome.VitoriaInocencia;
-            Color endBg = isVictory ? new Color(18, 34, 26) : new Color(36, 20, 22);
+            Color endBg = isVictory ? new Color(18, 34, 26, 250) : new Color(36, 20, 22, 250);
             Color endBorder = isVictory ? new Color(52, 211, 153) : new Color(248, 113, 113);
-            DrawPanel(endPanelRect, endBg, endBorder, 2);
+            DrawPanel(endPanelRect, endBg, endBorder, 2, isVictory ? new Color(24, 60, 45) : new Color(70, 30, 35));
+            DrawCornerRivets(endPanelRect, endBorder);
 
             string endTitle = _state.Outcome switch
             {
@@ -974,16 +1221,19 @@ public class InterrogationGame : Game
             // Carimbo retrô de inquérito criminal no topo
             DrawRetroStamp(new Rectangle(endPanelRect.X + 24, endPanelRect.Y + 14, endPanelRect.Width - 48, 36), endTitle, endBorder, fontTitle);
 
-            // Subtítulo descritivo com quebra automática de texto para nunca cortar
+            // Subtítulo descritivo com quebra automática
             string wrappedEndSub = WrapText(fontBody, endSub, endPanelRect.Width - 48);
             _spriteBatch.DrawString(fontBody, wrappedEndSub, new Vector2(endPanelRect.X + 24, endPanelRect.Y + 58), Color.White);
 
             var restartBtnRect = new Rectangle(endPanelRect.X + 24, endPanelRect.Y + 148, endPanelRect.Width - 48, 48);
-            bool hoverRestart = restartBtnRect.Contains(_prevMouse.Position);
+            bool hoverRestart = restartBtnRect.Contains(_virtualMousePos);
             DrawPanel(restartBtnRect, hoverRestart ? new Color(37, 99, 235) : new Color(29, 78, 216), new Color(147, 197, 253), 2);
-            DrawPixelFolder(restartBtnRect.X + 16, restartBtnRect.Y + 16, new Color(254, 240, 138));
+            int iconY = restartBtnRect.Y + (restartBtnRect.Height - 14) / 2;
+            DrawPixelFolder(restartBtnRect.X + 16, iconY, new Color(254, 240, 138));
             string rText = "▶ [F5] ARQUIVAR & ASSUMIR PRÓXIMO INQUÉRITO POLICIAL";
-            _spriteBatch.DrawString(fontTitle, rText, new Vector2(restartBtnRect.X + 40, restartBtnRect.Y + 12), Color.White);
+            var rSize = fontTitle.MeasureString(rText);
+            float rTextY = restartBtnRect.Y + (restartBtnRect.Height - rSize.Y) / 2f;
+            _spriteBatch.DrawString(fontTitle, rText, new Vector2(restartBtnRect.X + 40, rTextY), Color.White);
 
             _dialogueRestartRect = restartBtnRect;
         }
@@ -999,10 +1249,12 @@ public class InterrogationGame : Game
 
                 string clearText = "[✕ DESANEXAR]";
                 var clearBtnSize = fontSmall.MeasureString(clearText);
-                _clearClueButtonRect = new Rectangle(rightX + rightWidth - (int)clearBtnSize.X - 16, optionsAreaY - 2, (int)clearBtnSize.X + 14, 22);
-                bool hoverClear = _clearClueButtonRect.Contains(_prevMouse.Position);
+                int clearBtnH = (int)clearBtnSize.Y + 8;
+                _clearClueButtonRect = new Rectangle(rightX + rightWidth - (int)clearBtnSize.X - 18, optionsAreaY - 2, (int)clearBtnSize.X + 16, clearBtnH);
+                bool hoverClear = _clearClueButtonRect.Contains(_virtualMousePos);
                 DrawPanel(_clearClueButtonRect, hoverClear ? new Color(185, 28, 28) : new Color(127, 29, 29), new Color(248, 113, 113), 1);
-                _spriteBatch.DrawString(fontSmall, clearText, new Vector2(_clearClueButtonRect.X + 7, _clearClueButtonRect.Y + 2), Color.White);
+                float clearTextY = _clearClueButtonRect.Y + (_clearClueButtonRect.Height - clearBtnSize.Y) / 2f;
+                _spriteBatch.DrawString(fontSmall, clearText, new Vector2(_clearClueButtonRect.X + 8, clearTextY), Color.White);
 
                 string clueBanner = $"📂 PROVA ANEXADA: {_selectedClue.Title}";
                 int bannerStartX = rightX + (int)headerLeftSize.X + 16;
@@ -1024,48 +1276,52 @@ public class InterrogationGame : Game
             }
 
             int startCardY = optionsAreaY + 24;
-            int cardHeight = 47;
-            int cardGap = 5;
+            int cardHeight = 50;
+            int cardGap = 6;
 
             for (int i = 0; i < activeOptions.Count; i++)
             {
                 var opt = activeOptions[i];
                 var cardRect = new Rectangle(rightX, startCardY + i * (cardHeight + cardGap), rightWidth, cardHeight);
                 bool canClick = !_isWaitingForLlm && !_isGeneratingCase;
-                bool hover = cardRect.Contains(_prevMouse.Position) && canClick;
+                bool hover = cardRect.Contains(_virtualMousePos) && canClick;
 
                 Color tagColor;
                 Color cardBorder;
                 Color cardBg;
+                Color innerBorder;
 
                 switch (opt.Category)
                 {
                     case "Empatia":
                         tagColor = new Color(52, 211, 153);
-                        cardBorder = hover ? new Color(52, 211, 153) : new Color(30, 70, 50);
-                        cardBg = hover ? new Color(22, 45, 35) : new Color(16, 28, 22);
+                        cardBorder = hover ? new Color(52, 211, 153) : new Color(30, 80, 55);
+                        innerBorder = new Color(20, 50, 35);
+                        cardBg = hover ? new Color(22, 45, 35, 250) : new Color(14, 26, 20, 245);
                         break;
                     case "Pressao":
                         tagColor = new Color(248, 113, 113);
-                        cardBorder = hover ? new Color(248, 113, 113) : new Color(80, 35, 40);
-                        cardBg = hover ? new Color(45, 22, 25) : new Color(28, 16, 18);
+                        cardBorder = hover ? new Color(248, 113, 113) : new Color(90, 35, 42);
+                        innerBorder = new Color(55, 20, 25);
+                        cardBg = hover ? new Color(48, 22, 26, 250) : new Color(26, 14, 17, 245);
                         break;
                     case "Revelacao":
                     case "Final":
                         tagColor = new Color(250, 204, 21);
-                        cardBorder = hover ? new Color(250, 204, 21) : new Color(85, 70, 25);
-                        cardBg = hover ? new Color(46, 40, 18) : new Color(30, 26, 14);
+                        cardBorder = hover ? new Color(250, 204, 21) : new Color(95, 75, 25);
+                        innerBorder = new Color(60, 48, 18);
+                        cardBg = hover ? new Color(48, 40, 18, 250) : new Color(28, 24, 12, 245);
                         break;
                     default:
                         tagColor = new Color(96, 165, 250);
-                        cardBorder = hover ? new Color(96, 165, 250) : new Color(40, 60, 95);
-                        cardBg = hover ? new Color(26, 40, 65) : new Color(18, 26, 42);
+                        cardBorder = hover ? new Color(96, 165, 250) : new Color(42, 65, 105);
+                        innerBorder = new Color(24, 38, 65);
+                        cardBg = hover ? new Color(24, 38, 64, 250) : new Color(15, 22, 36, 245);
                         break;
                 }
 
-                DrawPanel(cardRect, cardBg, cardBorder, hover ? 2 : 1);
+                DrawPanel(cardRect, cardBg, cardBorder, hover ? 2 : 1, innerBorder);
 
-                // Badge do Teclado + Ícone Temático + Categoria
                 string categoryIcon = opt.Category switch
                 {
                     "Empatia" => "🤝",
@@ -1075,11 +1331,12 @@ public class InterrogationGame : Game
                 };
                 string badge = $"[{i + 1}] {categoryIcon} {opt.Tag}";
                 var badgeSize = fontSmall.MeasureString(badge);
-                var badgeRect = new Rectangle(cardRect.X + 8, cardRect.Y + 9, (int)badgeSize.X + 16, 28);
+                int badgeH = 32;
+                var badgeRect = new Rectangle(cardRect.X + 8, cardRect.Y + (cardRect.Height - badgeH) / 2, (int)badgeSize.X + 18, badgeH);
                 DrawPanel(badgeRect, tagColor * 0.18f, tagColor * 0.7f, 1);
-                _spriteBatch.DrawString(fontSmall, badge, new Vector2(badgeRect.X + 8, badgeRect.Y + 4), tagColor);
+                float badgeTextY = badgeRect.Y + (badgeRect.Height - badgeSize.Y) / 2f;
+                _spriteBatch.DrawString(fontSmall, badge, new Vector2(badgeRect.X + 9, badgeTextY), tagColor);
 
-                // Badge de Sinergia da Pista Anexada (se houver)
                 int maxTextRight = cardRect.Right - 16;
                 if (_selectedClue != null)
                 {
@@ -1089,14 +1346,15 @@ public class InterrogationGame : Game
                     Color synBg = isCompatible ? new Color(20, 50, 35) : new Color(50, 20, 25);
 
                     var synSize = fontSmall.MeasureString(synBadge);
-                    var synRect = new Rectangle(cardRect.Right - (int)synSize.X - 16, cardRect.Y + 9, (int)synSize.X + 12, 28);
+                    int synH = 32;
+                    var synRect = new Rectangle(cardRect.Right - (int)synSize.X - 18, cardRect.Y + (cardRect.Height - synH) / 2, (int)synSize.X + 14, synH);
                     DrawPanel(synRect, synBg, synColor, 1);
-                    _spriteBatch.DrawString(fontSmall, synBadge, new Vector2(synRect.X + 6, synRect.Y + 4), synColor);
+                    float synTextY = synRect.Y + (synRect.Height - synSize.Y) / 2f;
+                    _spriteBatch.DrawString(fontSmall, synBadge, new Vector2(synRect.X + 7, synTextY), synColor);
 
                     maxTextRight = synRect.Left - 12;
                 }
 
-                // Fala do Detetive com dimensionamento adaptativo para nunca cortar
                 string dialogueText = $"\"{opt.PlayerDialogue}\"";
                 int textStartX = badgeRect.Right + 12;
                 int maxTextWidth = maxTextRight - textStartX;
@@ -1107,22 +1365,28 @@ public class InterrogationGame : Game
 
                 if (optTextSize.Y > cardRect.Height - 8)
                 {
-                    fontOpt = _fontSystem.GetFont(13);
+                    fontOpt = _fontSystem.GetFont(14f);
                     wrappedOpt = WrapText(fontOpt, dialogueText, maxTextWidth);
                     optTextSize = fontOpt.MeasureString(wrappedOpt);
                 }
 
-                float textY = cardRect.Y + Math.Max(2, (cardRect.Height - optTextSize.Y) / 2f);
+                float textY = cardRect.Y + (cardRect.Height - optTextSize.Y) / 2f;
 
                 _spriteBatch.DrawString(fontOpt, wrappedOpt, new Vector2(textStartX, textY),
                     hover ? Color.White : new Color(225, 235, 250));
 
                 _dialogueOptionRects.Add((cardRect, opt));
             }
-
-            // Barra de Status Inferior (Alinhada perfeitamente na base)
-            _spriteBatch.DrawString(fontSmall, _statusBanner, new Vector2(rightX + 4, 788), new Color(155, 170, 195));
         }
+    }
+
+    private void DrawFooterStatusBar(int marginX, int footerY, int totalWidth)
+    {
+        var fontSub = _fontSystem.GetFont(16);
+        string caseCode = $"CASO #{Math.Abs(_state.CaseTitle.GetHashCode()) % 900 + 100}";
+        string footer = $"Inquérito Aberto: {caseCode} • {_state.CaseTitle}  •  Suspeito: {_state.NpcName}  •  {_statusBanner}";
+        string safeFooter = TruncateText(fontSub, footer, totalWidth - 8);
+        _spriteBatch.DrawString(fontSub, safeFooter, new Vector2(marginX + 2, footerY), new Color(148, 163, 184));
     }
 
     private void DrawTurnTimelineBar(Rectangle rect, DynamicSpriteFont fontTitle, DynamicSpriteFont fontSmall)
@@ -1147,11 +1411,11 @@ public class InterrogationGame : Game
                 : "Pressione [F5] no topo para assumir um novo inquérito policial");
         _spriteBatch.DrawString(fontSmall, subStatus, new Vector2(rect.X + 16, rect.Y + 35), new Color(190, 205, 230));
 
-        int pillWidth = 36;
-        int pillHeight = 36;
+        int pillWidth = 38;
+        int pillHeight = 38;
         int spacing = 6;
-        int startX = rect.Right - (10 * (pillWidth + spacing)) - 12;
-        int pillY = rect.Y + 14;
+        int startX = rect.Right - (10 * (pillWidth + spacing)) - 14;
+        int pillY = rect.Y + (rect.Height - pillHeight) / 2;
 
         for (int t = 1; t <= _state.MaxTurns; t++)
         {
@@ -1186,7 +1450,7 @@ public class InterrogationGame : Game
             string numStr = t.ToString();
             var sz = fontSmall.MeasureString(numStr);
             _spriteBatch.DrawString(fontSmall, numStr,
-                new Vector2(pillRect.X + (pillRect.Width - sz.X) / 2f, pillRect.Y + 7),
+                new Vector2(pillRect.X + (pillRect.Width - sz.X) / 2f, pillRect.Y + (pillRect.Height - sz.Y) / 2f),
                 numColor);
         }
     }
@@ -1251,12 +1515,15 @@ public class InterrogationGame : Game
         Color headerColor = isLatest ? new Color(250, 204, 21) : new Color(130, 148, 180);
         DrawFilledRect(new Rectangle(rect.X, curY + 14, rect.Width, 1), new Color(42, 54, 78) * opacity);
         var labelSize = fontSmall.MeasureString(headerLabel);
+        int labelH = (int)labelSize.Y + 8;
         int labelBgWidth = (int)labelSize.X + 24;
-        DrawPanel(new Rectangle(rect.X + 12, curY, labelBgWidth, 28),
+        var headerRect = new Rectangle(rect.X + 12, curY, labelBgWidth, labelH);
+        DrawPanel(headerRect,
             isLatest ? new Color(42, 36, 20) : new Color(22, 28, 40),
             headerColor * opacity, 1);
-        _spriteBatch.DrawString(fontSmall, headerLabel, new Vector2(rect.X + 24, curY + 4), headerColor * opacity);
-        curY += 38;
+        float headerTextY = headerRect.Y + (headerRect.Height - labelSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSmall, headerLabel, new Vector2(rect.X + 24, headerTextY), headerColor * opacity);
+        curY += labelH + 10;
 
         if (!string.IsNullOrEmpty(wrappedPlayer))
         {
@@ -1305,9 +1572,11 @@ public class InterrogationGame : Game
 
         string emotionBadge = $"POSTURA: {rec.NpcEmotion.ToString().ToUpperInvariant()}";
         var emoSize = fontSmall.MeasureString(emotionBadge);
-        var emoRect = new Rectangle(npcCard.Right - (int)emoSize.X - 30, npcCard.Y + 7, (int)emoSize.X + 18, 24);
+        int emoH = (int)emoSize.Y + 8;
+        var emoRect = new Rectangle(npcCard.Right - (int)emoSize.X - 30, npcCard.Y + 6, (int)emoSize.X + 18, emoH);
         DrawPanel(emoRect, emotionColor * 0.2f * opacity, emotionColor * opacity, 1);
-        _spriteBatch.DrawString(fontSmall, emotionBadge, new Vector2(emoRect.X + 9, emoRect.Y + 2), emotionColor * opacity);
+        float emoTextY = emoRect.Y + (emoRect.Height - emoSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSmall, emotionBadge, new Vector2(emoRect.X + 9, emoTextY), emotionColor * opacity);
 
         _spriteBatch.DrawString(fontNpc, wrappedNpc,
             new Vector2(npcCard.X + 18, npcCard.Y + 36), new Color(248, 250, 255) * opacity);
@@ -1372,21 +1641,25 @@ public class InterrogationGame : Game
         {
             curY += 14;
             string wrappedConclusion = WrapText(fontBody, rec.SystemConclusionText ?? "", rect.Width - 32);
-            int cH = (int)fontBody.MeasureString(wrappedConclusion).Y + 50;
+            var titleSize = fontSmall.MeasureString(rec.SystemConclusionTitle!);
+            var bodySize = fontBody.MeasureString(wrappedConclusion);
+            int cH = (int)(titleSize.Y + bodySize.Y + 32);
             var endRect = new Rectangle(rect.X, curY, rect.Width, cH);
             Color endColor = rec.IsVictoryConclusion ? new Color(52, 211, 153) : new Color(244, 63, 94);
             DrawPanel(endRect, endColor * 0.16f, endColor, 2);
-            _spriteBatch.DrawString(fontSmall, rec.SystemConclusionTitle!, new Vector2(endRect.X + 16, endRect.Y + 9), endColor);
-            _spriteBatch.DrawString(fontBody, wrappedConclusion, new Vector2(endRect.X + 16, endRect.Y + 34), Color.White);
+            _spriteBatch.DrawString(fontSmall, rec.SystemConclusionTitle!, new Vector2(endRect.X + 16, endRect.Y + 10), endColor);
+            _spriteBatch.DrawString(fontBody, wrappedConclusion, new Vector2(endRect.X + 16, endRect.Y + 10 + titleSize.Y + 8), Color.White);
         }
     }
 
     private int DrawImpactPill(int x, int y, string text, Color color, DynamicSpriteFont font, float opacity)
     {
         var size = font.MeasureString(text);
-        var pillRect = new Rectangle(x, y, (int)size.X + 18, 25);
+        int pillH = (int)size.Y + 8;
+        var pillRect = new Rectangle(x, y, (int)size.X + 18, pillH);
         DrawPanel(pillRect, color * 0.18f * opacity, color * 0.85f * opacity, 1);
-        _spriteBatch.DrawString(font, text, new Vector2(pillRect.X + 9, pillRect.Y + 2), color * opacity);
+        float textY = pillRect.Y + (pillRect.Height - size.Y) / 2f;
+        _spriteBatch.DrawString(font, text, new Vector2(pillRect.X + 9, textY), color * opacity);
         return pillRect.Right + 10;
     }
 
@@ -1400,9 +1673,14 @@ public class InterrogationGame : Game
     {
         int curY = rect.Y;
         string headerLabel = $"★ TURNO {turnNumber} DE {_state.MaxTurns} (EM ANDAMENTO...)";
-        DrawPanel(new Rectangle(rect.X + 12, curY, 320, 28), new Color(42, 36, 20), new Color(250, 204, 21), 1);
-        _spriteBatch.DrawString(fontSmall, headerLabel, new Vector2(rect.X + 24, curY + 4), new Color(250, 204, 21));
-        curY += 38;
+        var labelSize = fontSmall.MeasureString(headerLabel);
+        int labelH = (int)labelSize.Y + 8;
+        int labelBgWidth = (int)labelSize.X + 24;
+        var headerRect = new Rectangle(rect.X + 12, curY, labelBgWidth, labelH);
+        DrawPanel(headerRect, new Color(42, 36, 20), new Color(250, 204, 21), 1);
+        float headerTextY = headerRect.Y + (headerRect.Height - labelSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSmall, headerLabel, new Vector2(rect.X + 24, headerTextY), new Color(250, 204, 21));
+        curY += labelH + 10;
 
         int bubbleWidth = (int)(rect.Width * 0.78f);
         int pTextH = (int)fontBody.MeasureString(wrappedPlayer).Y;
@@ -1536,14 +1814,14 @@ public class InterrogationGame : Game
 
     private void DrawMeterBar(Rectangle rect, string label, string valueText, float ratio, Color barColor, string tooltip)
     {
-        var fontLabel = _fontSystem.GetFont(15);
-        var fontTiny = _fontSystem.GetFont(12.5f);
+        var fontLabel = _fontSystem.GetFont(16.5f);
+        var fontTiny = _fontSystem.GetFont(14f);
 
         _spriteBatch.DrawString(fontLabel, label, new Vector2(rect.X, rect.Y), new Color(220, 230, 248));
         var valSize = fontLabel.MeasureString(valueText);
         _spriteBatch.DrawString(fontLabel, valueText, new Vector2(rect.Right - valSize.X, rect.Y), barColor);
 
-        var barBg = new Rectangle(rect.X, rect.Y + 20, rect.Width, 12);
+        var barBg = new Rectangle(rect.X, rect.Y + 22, rect.Width, 12);
         DrawPanel(barBg, new Color(12, 15, 22), new Color(45, 55, 78), 1);
 
         int fillWidth = (int)Math.Clamp((barBg.Width - 4) * ratio, 0, barBg.Width - 4);
@@ -1552,7 +1830,7 @@ public class InterrogationGame : Game
             DrawFilledRect(new Rectangle(barBg.X + 2, barBg.Y + 2, fillWidth, barBg.Height - 4), barColor);
         }
 
-        _spriteBatch.DrawString(fontTiny, tooltip, new Vector2(rect.X, rect.Y + 36), new Color(145, 160, 188));
+        _spriteBatch.DrawString(fontTiny, tooltip, new Vector2(rect.X, rect.Y + 38), new Color(145, 160, 188));
     }
 
     private static string FormatDelta(int value) => value >= 0 ? $"+{value}" : value.ToString();
@@ -1662,13 +1940,57 @@ public class InterrogationGame : Game
         }
     }
 
-    private void DrawPanel(Rectangle rect, Color background, Color borderColor, int borderThickness)
+    private void DrawPanel(Rectangle rect, Color background, Color borderColor, int borderThickness = 1, Color? innerBorderColor = null)
     {
         DrawFilledRect(rect, background);
         DrawFilledRect(new Rectangle(rect.X, rect.Y, rect.Width, borderThickness), borderColor);
         DrawFilledRect(new Rectangle(rect.X, rect.Bottom - borderThickness, rect.Width, borderThickness), borderColor);
         DrawFilledRect(new Rectangle(rect.X, rect.Y, borderThickness, rect.Height), borderColor);
         DrawFilledRect(new Rectangle(rect.Right - borderThickness, rect.Y, borderThickness, rect.Height), borderColor);
+
+        if (innerBorderColor.HasValue && rect.Width > 8 && rect.Height > 8)
+        {
+            var inCol = innerBorderColor.Value;
+            int inset = borderThickness + 1;
+            DrawFilledRect(new Rectangle(rect.X + inset, rect.Y + inset, rect.Width - inset * 2, 1), inCol);
+            DrawFilledRect(new Rectangle(rect.X + inset, rect.Bottom - inset - 1, rect.Width - inset * 2, 1), inCol);
+            DrawFilledRect(new Rectangle(rect.X + inset, rect.Y + inset, 1, rect.Height - inset * 2), inCol);
+            DrawFilledRect(new Rectangle(rect.Right - inset - 1, rect.Y + inset, 1, rect.Height - inset * 2), inCol);
+        }
+    }
+
+    private void DrawPanelBorder(Rectangle rect, Color borderColor, int borderThickness = 1)
+    {
+        DrawFilledRect(new Rectangle(rect.X, rect.Y, rect.Width, borderThickness), borderColor);
+        DrawFilledRect(new Rectangle(rect.X, rect.Bottom - borderThickness, rect.Width, borderThickness), borderColor);
+        DrawFilledRect(new Rectangle(rect.X, rect.Y, borderThickness, rect.Height), borderColor);
+        DrawFilledRect(new Rectangle(rect.Right - borderThickness, rect.Y, borderThickness, rect.Height), borderColor);
+    }
+
+    private void DrawCornerRivets(Rectangle rect, Color rivetColor)
+    {
+        DrawFilledRect(new Rectangle(rect.X + 4, rect.Y + 4, 2, 2), rivetColor);
+        DrawFilledRect(new Rectangle(rect.Right - 6, rect.Y + 4, 2, 2), rivetColor);
+        DrawFilledRect(new Rectangle(rect.X + 4, rect.Bottom - 6, 2, 2), rivetColor);
+        DrawFilledRect(new Rectangle(rect.Right - 6, rect.Bottom - 6, 2, 2), rivetColor);
+    }
+
+    /// <summary>
+    /// Miniatura estilo polaroid / envelope pardo de evidência forense (inspirado na referência visual).
+    /// </summary>
+    private void DrawPixelEvidenceCardIcon(int x, int y, Color borderColor)
+    {
+        // Encarte / Pasta de prova
+        DrawFilledRect(new Rectangle(x, y, 20, 24), new Color(36, 26, 16));
+        DrawFilledRect(new Rectangle(x, y, 20, 1), borderColor);
+        DrawFilledRect(new Rectangle(x, y + 23, 20, 1), borderColor);
+        DrawFilledRect(new Rectangle(x, y, 1, 24), borderColor);
+        DrawFilledRect(new Rectangle(x + 19, y, 1, 24), borderColor);
+
+        // Foto / laudo pericial interno
+        DrawFilledRect(new Rectangle(x + 4, y + 4, 12, 12), new Color(202, 162, 85));
+        DrawFilledRect(new Rectangle(x + 6, y + 6, 8, 7), new Color(24, 30, 42));
+        DrawFilledRect(new Rectangle(x + 5, y + 18, 10, 2), new Color(140, 105, 55));
     }
 
     private void DrawFilledRect(Rectangle rect, Color color)
@@ -1677,10 +1999,38 @@ public class InterrogationGame : Game
     }
 
     /// <summary>
-    /// Distintivo policial retrô de metal dourado com estrela central (14x16 px).
+    /// Ícone pixel art de Minimizar Janela (traço horizontal).
+    /// </summary>
+    private void DrawPixelWindowMinimize(int x, int y, Color color)
+    {
+        DrawFilledRect(new Rectangle(x, y + 8, 10, 2), color);
+    }
+
+
+
+    /// <summary>
+    /// Ícone pixel art de Fechar Janela (X estilizado 10x10).
+    /// </summary>
+    private void DrawPixelWindowClose(int x, int y, Color color)
+    {
+        for (int i = 0; i < 9; i++)
+        {
+            DrawFilledRect(new Rectangle(x + i, y + i, 2, 1), color);
+            DrawFilledRect(new Rectangle(x + 8 - i, y + i, 2, 1), color);
+        }
+    }
+
+    /// <summary>
+    /// Distintivo policial retrô de metal dourado (ou textura de alta fidelidade).
     /// </summary>
     private void DrawPixelBadge(int x, int y, Color color)
     {
+        if (_badgeTexture != null)
+        {
+            _spriteBatch.Draw(_badgeTexture, new Rectangle(x, y, 36, 54), Color.White);
+            return;
+        }
+
         Color goldDark = new Color(160, 115, 15);
         Color goldBright = new Color(254, 240, 138);
 
