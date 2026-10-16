@@ -1,102 +1,102 @@
-# 🕵️‍♂️ LlamaNoir — Sala de Interrogatório Policial (1947)
+# 🕵️‍♂️ LlamaNoir — Police Interrogation Room (1947)
 
-[![Versão](https://img.shields.io/badge/versão-v0.1.0-blue.svg)](https://github.com/kelvynzucco/llama-noir/releases)
+[![Release](https://img.shields.io/badge/release-v0.1.0-blue.svg)](https://github.com/kelvynzucco/llama-noir/releases)
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![MonoGame](https://img.shields.io/badge/MonoGame-3.8.2-E11925?logo=monogame&logoColor=white)](https://monogame.net/)
-[![IA Local](https://img.shields.io/badge/IA_Local-Qwen_2.5_3B_(Llamafile)-22c55e?logo=mozilla&logoColor=white)](https://github.com/Mozilla-Ocho/llamafile)
-[![Licença](https://img.shields.io/badge/Licen%C3%A7a-MIT-green)](LICENSE)
+[![Local AI](https://img.shields.io/badge/Local_AI-Qwen_2.5_3B_(Llamafile)-22c55e?logo=mozilla&logoColor=white)](https://github.com/Mozilla-Ocho/llamafile)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 
-**LlamaNoir** é um jogo de investigação policial e interrogatório psicológico com atmosfera de *Film Noir* (década de 1940/1950), desenvolvido em **C# (.NET 8)** com **MonoGame**.
+**LlamaNoir** is a gritty, atmospheric criminal investigation and psychological interrogation game set in the golden era of *Film Noir* (late 1940s / 1950s), built in **C# (.NET 8)** using **MonoGame**.
 
-O jogador assume o papel de um detetive de homicídios da Delegacia Central, conduzindo inquéritos contra suspeitos cujos depoimentos, reações corporais, álibis e estados emocionais são simulados dinamicamente em tempo real através de um **modelo de Inteligência Artificial local (Qwen 2.5 3B Instruct via Mozilla Llamafile)**.
+You play as a homicide detective at Central Precinct, interrogating suspects whose personalities, alibis, bodily reactions, and dynamic dialogues are driven in real time by an embedded **local AI language model (Qwen 2.5 3B Instruct via Mozilla Llamafile)**.
 
-Nenhum dado sai do seu computador: o jogo opera de forma **100% privada, offline e confidencial**.
+**100% Private & Offline**: No data ever leaves your computer. The entire interrogation pipeline runs entirely on your local hardware.
 
 ---
 
-## 🖥️ Requisitos de Sistema
+## 🖥️ System Requirements
 
-| Requisito | Mínimo | Recomendado |
+| Specification | Minimum | Recommended |
 | :--- | :--- | :--- |
-| **Sistema Operacional** | Windows 10 (64-bit) | Windows 11 (64-bit) |
-| **Processador (CPU)** | Intel Core i3 / AMD Ryzen 3 (4 núcleos) | Intel Core i5 / AMD Ryzen 5 ou superior (6+ núcleos) |
-| **Memória RAM** | 8 GB RAM | 16 GB RAM |
-| **Armazenamento** | 4 GB de espaço livre em disco | 4 GB de espaço livre em SSD |
-| **Placa de Vídeo (GPU)** | Gráficos integrados com suporte a Vulkan/DirectX 12 | GPU dedicada (NVIDIA GTX 1060 / AMD RX 580 ou superior) com 4 GB+ VRAM |
-| **Conexão de Internet** | Necessária **apenas** no primeiro início para baixar os arquivos da IA (~2.1 GB) | Banda larga para download rápido |
+| **Operating System** | Windows 10 (64-bit) | Windows 11 (64-bit) |
+| **Processor (CPU)** | Intel Core i3 / AMD Ryzen 3 (4 cores / 4 threads) | Intel Core i5 / AMD Ryzen 5 or higher (6+ cores) |
+| **Memory (RAM)** | 8 GB RAM | 16 GB RAM |
+| **Storage** | 4 GB free disk space | 4 GB free SSD space |
+| **Graphics (GPU)** | Integrated graphics with Vulkan / DirectX 12 support | Dedicated GPU (NVIDIA GTX 1060 / AMD RX 580 or higher) with 4 GB+ VRAM |
+| **Internet Connection** | Required **only** for the one-time initial AI model download (~2.1 GB) | Broadband connection for fast model download |
 
-> **Nota de Performance**: Caso o computador possua GPU dedicada, o jogo aloca automaticamente as camadas neurais do modelo para acelerar as respostas em tempo real. Em computadores sem GPU dedicada, o modelo roda automaticamente via processamento multithread de CPU.
-
----
-
-## ⚡ Como Baixar e Jogar (Versão Pronta para Jogar)
-
-Não é necessário instalar ferramentas de programação nem configurar servidores manualmente:
-
-1. Acesse a aba **[Releases](https://github.com/kelvynzucco/llama-noir/releases)** do projeto.
-2. Baixe o arquivo **`LlamaNoir-v0.1.0-win-x64.zip`**.
-3. Extraia o conteúdo do arquivo `.zip` em qualquer pasta do seu computador.
-4. Dê um duplo clique em **`LlamaNoir.exe`**.
-5. No primeiro início, clique em **`[ 📥 BAIXAR AGENTE DE IA AUTOMATICAMENTE ]`**. O jogo cuidará de baixar o motor Llamafile e o modelo Qwen 2.5 3B diretamente para a pasta local.
-6. Assim que a barra de download atingir 100%, o interrogatório começa imediatamente!
+> **Performance Note**: If a compatible dedicated GPU is detected, LlamaNoir automatically offloads neural network layers to VRAM for near-instant responses. On machines with integrated graphics, the model runs smoothly via optimized multi-threaded CPU inference.
 
 ---
 
-## 🔍 Mecânicas do Jogo
+## ⚡ Quick Start: How to Download & Play (Pre-built Release)
 
-### 🧩 Inquéritos Criminais e Suspeitos
-* **Culpados vs. Inocentes Incriminados**: Casos alternam entre criminosos ardilosos (objetivo: quebrar contradições e extrair uma confissão formal) e vítimas de armações (objetivo: desmascarar a farsa, provar a inocência e identificar o mandante).
-* **Ficha Criminal Procedural**: Retratos gerados em pixel-art com silhueta sob lâmpada de delegacia e histórico de antecedentes policiais.
-* **Polígrafo Forense em Tempo Real**: Osciloscópio biométrico com frequência cardíaca (BPM) reagindo à pressão psicológica e blefes.
+No developer tools or manual server setups are required:
 
-### 💼 Dossiê Forense de Evidências (Uso Único)
-* **4 Provas Periciais**: Chaves, relatórios de balística, documentos adulterados e evidências recolhidas na cena do crime.
-* **Sinergia Investigativa Secreta**: Ao confrontar o suspeito com uma prova, ela é fixada ao depoimento e descartada. O resultado da pertinência só é revelado no prontuário após o confronto: evidências compatíveis desestabilizam o suspeito, enquanto provas desconexas destroem a credibilidade do detetive!
-
-### 🎙️ Linhas Estratégicas de Inquirição
-* `[EMPATIA]`: Conquista a confiança do depoente, reduz o estresse e facilita acordos judiciais.
-* `[PRESSÃO]`: Intimida e confronta depoimentos, acelerando o avanço do caso com risco de colapso emocional.
-* `[CONFRONTAÇÃO]`: Questiona álibis e detalha incongruências temporais.
-* `[REVELAÇÃO / FINAL]`: Desfecho acusatório para selar a confissão ou inocentar a vítima.
-
-### 📜 Linha do Tempo e Arquivo Taquigráfico
-* **Histórico de Turnos**: Clique nos botões `[T1]`, `[T2]`, ... na barra superior para revisar exatamente o que o suspeito alegou em perguntas passadas.
-* **Controle da Fita Gravadora**: Use o scroll do mouse ou a tecla `[F3]` para alternar entre o foco no turno corrente e a rolagem completa do inquérito.
+1. Go to the **[Releases](https://github.com/kelvynzucco/llama-noir/releases)** section.
+2. Download **`LlamaNoir-v0.1.0-win-x64.zip`**.
+3. Extract the `.zip` archive into any folder on your PC.
+4. Double-click **`LlamaNoir.exe`**.
+5. On the first launch, click **`[ 📥 DOWNLOAD AI AGENT AUTOMATICALLY ]`**. The game will stream the Mozilla Llamafile engine and the Qwen 2.5 3B model (~2.1 GB) directly into your local directory.
+6. Once the progress bar reaches 100%, the police interrogation begins immediately!
 
 ---
 
-## 🕹️ Controles e Atalhos
+## 🔍 Game Mechanics
 
-| Comando | Descrição |
+### 🧩 Procedural Crime Cases & Suspects
+* **Guilty Culprits vs. Framed Innocents**: Inquiries alternate dynamically between deceptive criminals (objective: expose alibi contradictions and extract a formal signed confession) and framed victims of an elaborate setup (objective: reveal the real mastermind and clear their name).
+* **Pixel-Art Mugshots**: Procedurally assembled suspect portraits featuring 1940s fedora silhouettes, physical feature tags, and police height grids.
+* **Biometric Polygraph Oscilloscope**: A real-time CRT polygraph monitor that traces heart rate (BPM), fluctuating with suspect stress, bluffs, and emotional breakdowns.
+
+### 💼 Forensic Evidence Dossier (Single-Use Clues)
+* **4 Pieces of Evidence per Case**: Ballistics reports, duplicate safe keys, forged bank slips, and forensic items gathered at the crime scene.
+* **Secret Synergy Mechanics**: Pinning an evidence card to your dialogue choice permanently consumes it. Whether the clue is compelling or completely irrelevant is only revealed in the police ledger *after* the confrontation — irrelevant evidence will backfire, devastating trust and spiking suspect stress!
+
+### 🎙️ Strategic Lines of Questioning
+* `[EMPATHY]`: Build rapport, lower psychological stress, and foster cooperation.
+* `[PRESSURE]`: Intimidate and corner the suspect (speeds up case progress, but risks emotional shutdown).
+* `[CONFRONTATION]`: Scrutinize alibis and challenge timeline inconsistencies.
+* `[REVELATION / FINAL]`: Deliver the decisive accusation to secure a confession or exonerate an innocent suspect.
+
+### 📜 Interactive Timeline & Verbatim Archive
+* **Historical Turn Rewind**: Click the turn pills (`[T1]`, `[T2]`, ...) on the timeline bar to inspect past questions and testimonies.
+* **Forensic Tape Player**: Use the mouse scroll wheel or press `[F3]` to toggle between the current active turn and the full scrollable interrogation transcript.
+
+---
+
+## 🕹️ Controls & Shortcuts
+
+| Key / Action | Description |
 | :--- | :--- |
-| **Clique / Teclas [1] a [4]** | Seleciona e executa uma linha de inquirição |
-| **Clique na Prova (Dossiê)** | Fixa ou desafixa uma evidência para o próximo confronto |
-| **Scroll do Mouse** | Rola o prontuário e arquivo taquigráfico |
-| **[F3]** | Alterna entre o turno atual e o rolo de depoimentos completo |
-| **[F5]** | Conclui/arquiva o caso atual e inicia um novo inquérito criminal |
-| **[Esc]** | Minimiza o aplicativo |
+| **Mouse Click / Keys [1] to [4]** | Select and execute a detective inquiry option |
+| **Click on Evidence Card** | Pin or unpin forensic evidence to confront the suspect |
+| **Mouse Scroll Wheel** | Scroll up/down through the verbatim interrogation record |
+| **[F3]** | Toggle between Current Turn View and Full Case Transcript |
+| **[F5]** | Archive current case and open a brand-new procedural inquiry |
+| **[Esc]** | Minimize the application window |
 
 ---
 
-## 🛠️ Compilação a partir do Código-Fonte (Desenvolvedores)
+## 🛠️ Building from Source (For Developers)
 
-Se você deseja modificar o código-fonte em C#:
+To build and run LlamaNoir locally from source:
 
 ```bash
-# Clone o repositório
+# Clone the repository
 git clone https://github.com/kelvynzucco/llama-noir.git
 cd llama-noir
 
-# Compile e execute
+# Build and run
 dotnet run
 ```
 
 ---
 
-## 🛡️ Identidade Visual
-O jogo utiliza oficialmente o **Distintivo Policial Histórico** (`assets/Distintivo.ico` e `assets/Distintivo.png`) como ícone de aplicativo no Windows Explorer, na barra de tarefas e no cabeçalho da Delegacia Central.
+## 🛡️ Visual Identity & Iconography
+The game officially uses the vintage **Central Precinct Detective Badge** (`assets/Distintivo.ico` and `assets/Distintivo.png`) as the desktop icon, Windows taskbar icon, and in-game UI header.
 
 ---
 
-## 📄 Licença
-Distribuído sob a licença **MIT**. Sinta-se livre para jogar, inspecionar e aprimorar o código!
+## 📄 License
+Distributed under the **MIT License**. Feel free to explore, customize, and build upon it!
