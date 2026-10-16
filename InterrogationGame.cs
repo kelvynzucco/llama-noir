@@ -193,8 +193,11 @@ public class InterrogationGame : Game
         {
             if (File.Exists(fontPath))
             {
-                _fontSystem.AddFont(File.ReadAllBytes(fontPath));
-                break;
+                try
+                {
+                    _fontSystem.AddFont(File.ReadAllBytes(fontPath));
+                }
+                catch { }
             }
         }
     }
@@ -387,6 +390,10 @@ public class InterrogationGame : Game
         _isGeneratingCase = true;
         _selectedClue = null;
         _pendingPlayerAction = string.Empty;
+        _dialogueOptionRects.Clear();
+        _clueRects.Clear();
+        _state.DialogueTree.Clear();
+        _state.Clues.Clear();
 
         _statusBanner = "Abrindo arquivos da delegacia... Convocando suspeito para interrogatório...";
 
@@ -941,8 +948,8 @@ public class InterrogationGame : Game
         var portraitRect = new Rectangle(leftX + 16, sY + 16, 140, 148);
         if (_isGeneratingCase)
         {
-            DrawPanel(portraitRect, new Color(14, 18, 26), new Color(96, 165, 250), 2);
-            DrawAnimatedMagnifyingGlass(portraitRect.Center.X, portraitRect.Center.Y, 24, gameTime);
+            DrawUnknownSuspectPortrait(portraitRect, gameTime);
+            DrawCornerPhotoMounts(portraitRect, new Color(85, 95, 115));
         }
         else
         {
@@ -952,12 +959,12 @@ public class InterrogationGame : Game
 
         int infoX = portraitRect.Right + 14;
         int infoWidth = suspectPanel.Right - infoX - 16;
-        string displayNpcName = _isGeneratingCase ? "Identificando..." : _state.NpcName;
-        string displayNpcRole = _isGeneratingCase ? "Buscando antecedentes..." : _state.NpcRole;
+        string displayNpcName = _isGeneratingCase ? "Suspeito Não Identificado" : _state.NpcName;
+        string displayNpcRole = _isGeneratingCase ? "Aguardando ficha policial..." : _state.NpcRole;
 
         // Nome do suspeito com ajuste inteligente de fonte
         var fontName = fontHeader.MeasureString(displayNpcName).X <= infoWidth ? fontHeader : _fontSystem.GetFont(18);
-        _spriteBatch.DrawString(fontName, displayNpcName, new Vector2(infoX, sY + 16), new Color(240, 244, 255));
+        _spriteBatch.DrawString(fontName, displayNpcName, new Vector2(infoX, sY + 16), _isGeneratingCase ? new Color(250, 204, 21) : new Color(240, 244, 255));
 
         // Profissão / Papel do suspeito
         var fontRole = fontTiny;
@@ -970,8 +977,8 @@ public class InterrogationGame : Game
         _spriteBatch.DrawString(fontRole, wrappedRole, new Vector2(infoX, sY + 44), new Color(165, 180, 210));
 
         // Postura Emocional
-        Color emotionColor = GetEmotionColor(_state.Emotion);
-        string emotionText = $"Postura: {_state.Emotion.ToString().ToUpperInvariant()}";
+        Color emotionColor = _isGeneratingCase ? new Color(148, 163, 184) : GetEmotionColor(_state.Emotion);
+        string emotionText = _isGeneratingCase ? "Postura: AGUARDANDO" : $"Postura: {_state.Emotion.ToString().ToUpperInvariant()}";
         var emSize = fontSmall.MeasureString(emotionText);
         var emotionBox = new Rectangle(infoX, sY + 70, (int)emSize.X + 22, 28);
         DrawPanel(emotionBox, emotionColor * 0.22f, emotionColor, 1);
@@ -980,7 +987,7 @@ public class InterrogationGame : Game
             new Vector2(emotionBox.X + 11, emTextY), emotionColor);
 
         // Polígrafo Forense
-        int bpm = 68 + (int)(_displayStress * 0.72f);
+        int bpm = _isGeneratingCase ? 72 : (68 + (int)(_displayStress * 0.72f));
         _spriteBatch.DrawString(fontTiny, $"Polígrafo Forense: {bpm} BPM",
             new Vector2(infoX, sY + 104), bpm > 115 ? new Color(255, 110, 110) : new Color(130, 210, 175));
         DrawPolygraphOscilloscope(new Rectangle(infoX, sY + 122, infoWidth, 26), gameTime, bpm, bpm > 115 ? new Color(244, 63, 94) : new Color(52, 211, 153));
@@ -1360,6 +1367,32 @@ public class InterrogationGame : Game
 
             _dialogueRestartRect = restartBtnRect;
         }
+        else if (_isGeneratingCase)
+        {
+            _clearClueButtonRect = Rectangle.Empty;
+            _dialogueOptionRects.Clear();
+
+            string headerText = "ABRINDO NOVO INQUÉRITO POLICIAL [Aguardando convocação do suspeito e dossiê]...";
+            _spriteBatch.DrawString(fontSmall, headerText, new Vector2(rightX + 4, optionsAreaY + 1), new Color(250, 204, 21));
+
+            int startCardY = optionsAreaY + 24;
+            int cardGap = 8;
+            int count = 4;
+            int availableCardsH = optionsAreaHeight - 26;
+            int cardHeight = Math.Max(48, (availableCardsH - (cardGap * (count - 1))) / count);
+
+            for (int i = 0; i < count; i++)
+            {
+                var cardRect = new Rectangle(rightX, startCardY + i * (cardHeight + cardGap), rightWidth, cardHeight);
+                DrawPanel(cardRect, new Color(15, 23, 42, 180), new Color(51, 65, 85, 140), 1);
+
+                string waitText = $"— Linha de inquirição 0{i + 1} em elaboração pela equipe forense —";
+                var textSize = fontSmall.MeasureString(waitText);
+                float textX = cardRect.X + (cardRect.Width - textSize.X) / 2f;
+                float textY = cardRect.Y + (cardRect.Height - textSize.Y) / 2f;
+                _spriteBatch.DrawString(fontSmall, waitText, new Vector2(textX, textY), new Color(100, 116, 139));
+            }
+        }
         else
         {
             if (_selectedClue != null)
@@ -1493,10 +1526,11 @@ public class InterrogationGame : Game
     private void DrawFooterStatusBar(int marginX, int footerY, int totalWidth)
     {
         var fontSub = _fontSystem.GetFont(16);
-        string caseCode = $"CASO #{Math.Abs(_state.CaseTitle.GetHashCode()) % 900 + 100}";
-        string footer = $"Inquérito Aberto: {caseCode} • {_state.CaseTitle}  •  Suspeito: {_state.NpcName}  •  {_statusBanner}";
+        string footer = _statusBanner;
         string safeFooter = TruncateText(fontSub, footer, totalWidth - 8);
-        _spriteBatch.DrawString(fontSub, safeFooter, new Vector2(marginX + 2, footerY), new Color(148, 163, 184));
+        var sz = fontSub.MeasureString(safeFooter);
+        float textX = marginX + (totalWidth - sz.X) / 2f;
+        _spriteBatch.DrawString(fontSub, safeFooter, new Vector2(textX, footerY), new Color(148, 163, 184));
     }
 
     private void DrawTurnTimelineBar(Rectangle rect, DynamicSpriteFont fontTitle, DynamicSpriteFont fontSmall)
@@ -1853,6 +1887,62 @@ public class InterrogationGame : Game
         string waitMsg = WrapText(fontBody, $"O silêncio pesa na sala... {_state.NpcName} mede as palavras sob a luz fria{dotsStr}", waitRect.Width - 36);
         _spriteBatch.DrawString(fontBody, waitMsg,
             new Vector2(waitRect.X + 18, waitRect.Y + 18), new Color(196, 181, 253));
+    }
+
+    /// <summary>
+    /// Desenha o retrato de suspeito desconhecido/não identificado durante a convocação de um novo inquérito.
+    /// </summary>
+    private void DrawUnknownSuspectPortrait(Rectangle rect, GameTime gameTime)
+    {
+        Color auraColor = new Color(55, 75, 105);
+        DrawPanel(rect, new Color(14, 18, 26), auraColor, 2);
+
+        // Grade de medição policial ao fundo
+        for (int y = rect.Y + 12; y < rect.Bottom - 12; y += 18)
+        {
+            _spriteBatch.Draw(_pixel, new Rectangle(rect.X + 6, y, rect.Width - 12, 4), new Color(24, 31, 46));
+        }
+
+        float breath = (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 2.0) * 1.5f;
+        int cx = rect.Center.X;
+        int cy = rect.Center.Y + (int)breath;
+
+        Color shadowColor = new Color(26, 32, 44);
+        Color contourColor = new Color(48, 62, 84);
+
+        // Silhueta dos Ombros e Casaco
+        DrawFilledRect(new Rectangle(cx - 50, rect.Bottom - 48, 100, 46), shadowColor);
+        DrawFilledRect(new Rectangle(cx - 18, rect.Bottom - 48, 36, 46), contourColor * 0.7f);
+
+        // Pescoço e Cabeça em Silhueta Sombria
+        DrawFilledRect(new Rectangle(cx - 12, cy + 14, 24, 16), shadowColor);
+        DrawFilledRect(new Rectangle(cx - 28, cy - 30, 56, 48), shadowColor);
+
+        // Chapéu Fedora Noir Clássico (Aba e Copa)
+        DrawFilledRect(new Rectangle(cx - 38, cy - 24, 76, 8), contourColor);
+        DrawFilledRect(new Rectangle(cx - 26, cy - 44, 52, 22), shadowColor);
+        DrawFilledRect(new Rectangle(cx - 26, cy - 28, 52, 5), new Color(65, 80, 105));
+
+        // Ponto de Interrogação Noir "?" Brilhante no Rosto
+        var fontQ = _fontSystem.GetFont(34);
+        string qMark = "?";
+        var qSize = fontQ.MeasureString(qMark);
+        float pulse = 0.85f + (float)Math.Sin(gameTime.TotalGameTime.TotalSeconds * 3.5) * 0.15f;
+        Color qColor = new Color(250, 204, 21) * pulse;
+        _spriteBatch.DrawString(fontQ, qMark, new Vector2(cx - qSize.X / 2f, cy - 14), qColor);
+
+        // Tarja de Arquivo Confidencial no Rodapé da Foto
+        string stampText = "[ NÃO IDENTIFICADO ]";
+        var fontStamp = _fontSystem.GetFont(12.5f);
+        var stampSz = fontStamp.MeasureString(stampText);
+        int stampH = 20;
+        int stampY = rect.Bottom - stampH - 6;
+        var stampBox = new Rectangle(rect.X + 8, stampY, rect.Width - 16, stampH);
+        DrawPanel(stampBox, new Color(30, 20, 24, 240), new Color(239, 68, 68), 1);
+        float stampTextY = stampBox.Y + (stampBox.Height - stampSz.Y) / 2f;
+        _spriteBatch.DrawString(fontStamp, stampText,
+            new Vector2(stampBox.X + (stampBox.Width - stampSz.X) / 2f, stampTextY),
+            new Color(254, 202, 202));
     }
 
     /// <summary>
