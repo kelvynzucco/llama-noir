@@ -29,7 +29,7 @@ public class InterrogationGame : Game
     private bool _isWaitingForLlm = false;
     private bool _isGeneratingCase = false;
     private string _pendingPlayerAction = string.Empty;
-    private bool _focusCurrentTurnOnly = false;
+    private int _selectedViewTurn = 1;
 
     private string _statusBanner = "A lâmpada fria oscila sobre a mesa metálica. O interrogatório vai começar.";
 
@@ -45,7 +45,7 @@ public class InterrogationGame : Game
     private string _cachedWrappedPendingPlayer = string.Empty;
     private int _lastCacheTurnCount = -1;
     private int _lastCacheTypewriterChars = -1;
-    private bool _lastCacheFocusMode = false;
+    private int _lastCacheSelectedTurn = -1;
     private bool _lastCacheWaitingLlm = false;
     private string _lastCacheCaseTitle = string.Empty;
     private int _lastCacheInnerWidth = -1;
@@ -87,11 +87,11 @@ public class InterrogationGame : Game
     private Rectangle _windowCloseRect;
 
     // Regiões clicáveis da UI e estado de pistas anexadas
-    private Rectangle _toggleViewModeRect;
     private Rectangle _newCaseButtonRect;
     private Rectangle _dialogueRestartRect;
     private Rectangle _clearClueButtonRect;
     private ClueItem? _selectedClue = null;
+    private readonly List<(Rectangle Rect, int Turn)> _timelineTurnPillRects = new();
     private readonly List<(Rectangle Rect, DialogueOption Option)> _dialogueOptionRects = new();
     private readonly List<(Rectangle Rect, ClueItem Clue)> _clueRects = new();
 
@@ -220,9 +220,6 @@ public class InterrogationGame : Game
         _virtualMousePos = mouse.Position;
 
         // Atalhos de função
-        if (keyboard.IsKeyDown(Keys.F3) && !_prevKeyboard.IsKeyDown(Keys.F3))
-            _focusCurrentTurnOnly = !_focusCurrentTurnOnly;
-
         if (keyboard.IsKeyDown(Keys.F5) && !_prevKeyboard.IsKeyDown(Keys.F5))
             _ = GenerateNewProceduralCaseAsync();
 
@@ -234,7 +231,7 @@ public class InterrogationGame : Game
         // Rolagem do histórico com a roda do mouse
         int scrollDelta = mouse.ScrollWheelValue - _previousScrollWheelValue;
         _previousScrollWheelValue = mouse.ScrollWheelValue;
-        if (scrollDelta != 0 && !_focusCurrentTurnOnly)
+        if (scrollDelta != 0)
         {
             _autoScrollToBottom = false;
             _chatScrollOffset = MathHelper.Clamp(_chatScrollOffset - scrollDelta * 0.42f, 0f, _maxChatScroll);
@@ -291,10 +288,23 @@ public class InterrogationGame : Game
                 return;
             }
 
-            if (_toggleViewModeRect.Contains(mp))
+            // Clique nas pílulas de turnos do registro cronológico (1 a 10)
+            bool clickedTimelinePill = false;
+            foreach (var (rect, turn) in _timelineTurnPillRects)
             {
-                _focusCurrentTurnOnly = !_focusCurrentTurnOnly;
-                _autoScrollToBottom = true;
+                if (rect.Contains(mp))
+                {
+                    _selectedViewTurn = turn;
+                    _chatScrollOffset = 0f;
+                    _autoScrollToBottom = false;
+                    clickedTimelinePill = true;
+                    break;
+                }
+            }
+
+            if (clickedTimelinePill)
+            {
+                // Turno selecionado para visualização
             }
             else if (_newCaseButtonRect.Contains(mp))
             {
@@ -393,6 +403,7 @@ public class InterrogationGame : Game
         _autoScrollToBottom = true;
         _typewriterCharsVisible = 0f;
         _lastAnimatedTurnCount = 0; // força animação typewriter na abertura
+        _selectedViewTurn = 1;
         _isGeneratingCase = false;
     }
 
@@ -403,6 +414,7 @@ public class InterrogationGame : Game
 
         option.IsUsed = true;
         _isWaitingForLlm = true;
+        _selectedViewTurn = _state.CurrentTurn;
 
         string actionText;
         ClueSynergyType synergy;
@@ -572,6 +584,7 @@ public class InterrogationGame : Game
                 : $"{_state.NpcName} percebeu que você está determinado a incriminá-lo a qualquer custo, ignorando sua inocência! Desesperado com a parcialidade policial, o suspeito calou-se em pânico.";
             record.IsVictoryConclusion = false;
             _state.TurnRecords.Add(record);
+            _selectedViewTurn = executedTurn;
             _statusBanner = "DERROTA: A confiança do suspeito caiu a zero e o interrogatório travou. Pressione [F5] para novo caso.";
             return;
         }
@@ -595,6 +608,7 @@ public class InterrogationGame : Game
             }
             record.IsVictoryConclusion = false;
             _state.TurnRecords.Add(record);
+            _selectedViewTurn = executedTurn;
             return;
         }
 
@@ -617,6 +631,7 @@ public class InterrogationGame : Game
             }
             record.IsVictoryConclusion = true;
             _state.TurnRecords.Add(record);
+            _selectedViewTurn = executedTurn;
             return;
         }
 
@@ -628,12 +643,14 @@ public class InterrogationGame : Game
             record.SystemConclusionText = $"Os 10 turnos acabaram! O advogado de defesa abriu a porta e retirou {_state.NpcName} da sala antes da elucidação completa do caso. Pressione [F5] para gerar um novo caso.";
             record.IsVictoryConclusion = false;
             _state.TurnRecords.Add(record);
+            _selectedViewTurn = executedTurn;
             _statusBanner = "DERROTA: Os 10 turnos se esgotaram. Pressione [F5] para gerar um novo caso.";
             return;
         }
 
         _state.TurnRecords.Add(record);
         _state.CurrentTurn++;
+        _selectedViewTurn = _state.CurrentTurn;
         _statusBanner = $"Turno {_state.CurrentTurn} de {_state.MaxTurns} • Sua vez de interrogar (faltam {_state.MaxTurns - _state.CurrentTurn + 1} turnos para o advogado chegar).";
     }
 
@@ -662,32 +679,37 @@ public class InterrogationGame : Game
             MarginX = Math.Clamp((screenW - 1476) / 4 + 36, 36, 56);
             TotalContentWidth = screenW - MarginX * 2;
 
-            HeaderFolderRect = new Rectangle(MarginX, 84, TotalContentWidth, 76);
+            int folderH = 108;
+            HeaderFolderRect = new Rectangle(MarginX, 84, TotalContentWidth, folderH);
 
             int leftW = Math.Clamp((int)(TotalContentWidth * 0.315f), 460, 520);
             int rightW = TotalContentWidth - leftW - 16;
             int rightX = MarginX + leftW + 16;
 
-            int suspectH = 394;
-            int availableH = Math.Max(700, screenH - 174 - 44);
-            int cluesH = availableH - suspectH - 12;
-            LeftPanelRect = new Rectangle(MarginX, 174, leftW, suspectH);
-            CluesPanelRect = new Rectangle(MarginX, 174 + suspectH + 12, leftW, cluesH);
+            int panelsTopY = 84 + folderH + 12;
+            int availableH = Math.Max(660, screenH - panelsTopY - 44);
+
+            int rowGap = 12;
+            int totalRowsH = availableH - rowGap;
+            int topRowH = (int)(totalRowsH * 0.60f);
+            int bottomRowH = totalRowsH - topRowH;
+
+            LeftPanelRect = new Rectangle(MarginX, panelsTopY, leftW, topRowH);
+            CluesPanelRect = new Rectangle(MarginX, panelsTopY + topRowH + rowGap, leftW, bottomRowH);
 
             int timelineH = 64;
-            TimelineRect = new Rectangle(rightX, 174, rightW, timelineH);
+            TimelineRect = new Rectangle(rightX, panelsTopY, rightW, timelineH);
 
-            int optionsH = 248;
-            int stageH = availableH - timelineH - 10 - optionsH;
-            int stageY = 174 + timelineH + 10;
+            int stageY = panelsTopY + timelineH + 10;
+            int stageH = (panelsTopY + topRowH) - stageY;
             StagePanelRect = new Rectangle(rightX, stageY, rightW, stageH);
 
-            OptionsAreaY = stageY + stageH + 14;
-            OptionsAreaHeight = optionsH;
+            OptionsAreaY = panelsTopY + topRowH + rowGap;
+            OptionsAreaHeight = bottomRowH;
 
             RightX = rightX;
             RightWidth = rightW;
-            FooterY = 174 + availableH + 12;
+            FooterY = panelsTopY + availableH + 12;
         }
     }
 
@@ -787,33 +809,14 @@ public class InterrogationGame : Game
         float newCaseY = _newCaseButtonRect.Y + (_newCaseButtonRect.Height - newCaseSize.Y) / 2f;
         _spriteBatch.DrawString(fontSub, newCaseLabel, new Vector2(_newCaseButtonRect.X + 32, newCaseY), new Color(245, 230, 255));
 
-        // Botão [F3] ARQUIVO GERAL / TURNO ATUAL
-        _toggleViewModeRect = new Rectangle(_newCaseButtonRect.Left - 184 - 10, 13, 184, 42);
-        bool hoverView = _toggleViewModeRect.Contains(_virtualMousePos);
-        DrawPanel(_toggleViewModeRect,
-            hoverView ? new Color(36, 52, 78) : new Color(22, 34, 52),
-            _focusCurrentTurnOnly ? new Color(56, 189, 248) : new Color(64, 88, 128), 1, new Color(38, 58, 88));
-        DrawPixelMagnifyingGlass(_toggleViewModeRect.X + 10, _toggleViewModeRect.Y + 14, _focusCurrentTurnOnly ? new Color(56, 189, 248) : new Color(160, 175, 205));
-        string viewText = _focusCurrentTurnOnly ? "[F3] TURNO ATUAL" : "[F3] ARQUIVO GERAL";
-        var viewSize = fontSub.MeasureString(viewText);
-        float viewY = _toggleViewModeRect.Y + (_toggleViewModeRect.Height - viewSize.Y) / 2f;
-        _spriteBatch.DrawString(fontSub, viewText, new Vector2(_toggleViewModeRect.X + 30, viewY), Color.White);
-
-        // Badge de Código do Caso
-        var caseBadgeRect = new Rectangle(_toggleViewModeRect.Left - 152 - 10, 13, 152, 42);
+        // Badge de Código do Caso com gravador de fita policial
+        var caseBadgeRect = new Rectangle(_newCaseButtonRect.Left - 160 - 12, 13, 160, 42);
         DrawPanel(caseBadgeRect, new Color(42, 32, 16), new Color(234, 179, 8), 2, new Color(120, 80, 20));
-        DrawPixelFolder(caseBadgeRect.X + 12, caseBadgeRect.Y + 14, new Color(250, 204, 21));
+        DrawPixelTapeRecorder(caseBadgeRect.X + 10, caseBadgeRect.Y + 13, gameTime, true);
         string caseCodeText = $"CASO #{Math.Abs(_state.CaseTitle.GetHashCode()) % 900 + 100}";
         var caseCodeSize = fontSub.MeasureString(caseCodeText);
         float codeY = caseBadgeRect.Y + (caseBadgeRect.Height - caseCodeSize.Y) / 2f;
-        _spriteBatch.DrawString(fontSub, caseCodeText, new Vector2(caseBadgeRect.X + 36, codeY), new Color(254, 240, 138));
-
-        // Gravador de Rolo Magnetofônico Contínuo
-        int recX = caseBadgeRect.Left - 188;
-        DrawPixelTapeRecorder(recX, 24, gameTime, true);
-        var recLabelSize = fontSub.MeasureString("GRAVAÇÃO FORENSE");
-        float recLabelY = 24 + (18 - recLabelSize.Y) / 2f;
-        _spriteBatch.DrawString(fontSub, "GRAVAÇÃO FORENSE", new Vector2(recX + 28, recLabelY), new Color(156, 175, 205));
+        _spriteBatch.DrawString(fontSub, caseCodeText, new Vector2(caseBadgeRect.X + 38, codeY), new Color(254, 240, 138));
 
         // 2. DOSSIÊ DO INQUÉRITO: PASTA PARDA ESTILO NOIR
         var objBannerRect = layout.HeaderFolderRect;
@@ -824,26 +827,95 @@ public class InterrogationGame : Game
         DrawFilledRect(new Rectangle(objBannerRect.X + 16, objBannerRect.Y - 3, 180, 4), new Color(250, 204, 21));
 
         string rawTitle = _isGeneratingCase ? "ABRINDO NOVO INQUÉRITO FORENSE..." : _state.CaseTitle;
-        string rawObj = _isGeneratingCase ? "Consultando arquivos confidenciais da delegacia..." : _state.CaseObjective;
 
         // Título do Caso no topo da pasta
         _spriteBatch.DrawString(fontTitle, rawTitle, new Vector2(objBannerRect.X + 22, objBannerRect.Y + 7), new Color(254, 240, 138));
 
-        // Placa interna escura do Objetivo
-        var objPlateRect = new Rectangle(objBannerRect.X + 16, objBannerRect.Y + 35, objBannerRect.Width - 32, 32);
+        // Extração de Contexto e Objetivo separados sem repetição de termos
+        string contextText = string.Empty;
+        string objectiveText = string.Empty;
+
+        if (_isGeneratingCase)
+        {
+            contextText = "Consultando arquivos confidenciais do departamento de polícia...";
+            objectiveText = "Aguardando dossiê probatório e convocação formal do suspeito...";
+        }
+        else
+        {
+            string rawObj = _state.CaseObjective ?? string.Empty;
+            if (rawObj.Contains('\n'))
+            {
+                var lines = rawObj.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (var line in lines)
+                {
+                    if (line.StartsWith("CONTEXTO:", StringComparison.OrdinalIgnoreCase))
+                        contextText = line["CONTEXTO:".Length..].Trim();
+                    else if (line.StartsWith("OBJETIVO:", StringComparison.OrdinalIgnoreCase))
+                        objectiveText = line["OBJETIVO:".Length..].Trim();
+                    else if (string.IsNullOrEmpty(contextText))
+                        contextText = line.Trim();
+                    else if (string.IsNullOrEmpty(objectiveText))
+                        objectiveText = line.Trim();
+                }
+            }
+            else if (rawObj.Contains("OBJETIVO:", StringComparison.OrdinalIgnoreCase) && rawObj.Contains("CONTEXTO:", StringComparison.OrdinalIgnoreCase))
+            {
+                int ctxIdx = rawObj.IndexOf("CONTEXTO:", StringComparison.OrdinalIgnoreCase);
+                int objIdx = rawObj.IndexOf("OBJETIVO:", StringComparison.OrdinalIgnoreCase);
+                if (ctxIdx < objIdx)
+                {
+                    contextText = rawObj.Substring(ctxIdx + 9, objIdx - (ctxIdx + 9)).Trim();
+                    objectiveText = rawObj.Substring(objIdx + 9).Trim();
+                }
+                else
+                {
+                    objectiveText = rawObj.Substring(objIdx + 9, ctxIdx - (objIdx + 9)).Trim();
+                    contextText = rawObj.Substring(ctxIdx + 9).Trim();
+                }
+            }
+            else
+            {
+                string clean = rawObj;
+                if (clean.StartsWith("OBJETIVO:", StringComparison.OrdinalIgnoreCase))
+                    clean = clean["OBJETIVO:".Length..].Trim();
+
+                contextText = $"{_state.NpcName} ({_state.NpcRole}) está detido para interrogatório oficial.";
+                objectiveText = clean;
+            }
+
+            if (string.IsNullOrWhiteSpace(contextText))
+                contextText = $"{_state.NpcName} sob custódia na delegacia policial.";
+            if (string.IsNullOrWhiteSpace(objectiveText))
+                objectiveText = "Obtenha a confissão factual ou elucide o caso antes do Turno 10 sem estresse 100%.";
+        }
+
+        // Placa interna escura com 2 linhas (Linha 1: Contexto, Linha 2: Objetivo)
+        var objPlateRect = new Rectangle(objBannerRect.X + 16, objBannerRect.Y + 36, objBannerRect.Width - 32, 62);
         DrawPanel(objPlateRect, new Color(18, 14, 10), new Color(160, 115, 25), 1);
 
-        var badgeRect = new Rectangle(objPlateRect.X + 4, objPlateRect.Y + 4, 104, 24);
-        DrawPanel(badgeRect, new Color(55, 42, 18), new Color(250, 204, 21), 1);
-        var badgeTextSize = fontSmall.MeasureString("OBJETIVO:");
-        float badgeTextY = badgeRect.Y + (badgeRect.Height - badgeTextSize.Y) / 2f;
-        _spriteBatch.DrawString(fontSmall, "OBJETIVO:", new Vector2(badgeRect.X + (badgeRect.Width - badgeTextSize.X) / 2f, badgeTextY), new Color(250, 204, 21));
+        // Linha 1: Contexto
+        var badgeContextRect = new Rectangle(objPlateRect.X + 5, objPlateRect.Y + 5, 106, 24);
+        DrawPanel(badgeContextRect, new Color(24, 38, 58), new Color(56, 189, 248), 1);
+        var badgeCtxSize = fontSmall.MeasureString("CONTEXTO:");
+        float badgeCtxY = badgeContextRect.Y + (badgeContextRect.Height - badgeCtxSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSmall, "CONTEXTO:", new Vector2(badgeContextRect.X + (badgeContextRect.Width - badgeCtxSize.X) / 2f, badgeCtxY), new Color(125, 211, 252));
 
-        string cleanObj = rawObj.Replace("\r\n", " ").Replace('\n', ' ');
-        string safeObj = TruncateText(fontObj, cleanObj, objPlateRect.Width - 130);
-        var objTextSize = fontObj.MeasureString(safeObj);
-        float objTextY = objPlateRect.Y + (objPlateRect.Height - objTextSize.Y) / 2f;
-        _spriteBatch.DrawString(fontObj, safeObj, new Vector2(badgeRect.Right + 12, objTextY), new Color(254, 240, 138));
+        string safeContext = TruncateText(fontObj, contextText, objPlateRect.Width - 130);
+        var ctxTextSize = fontObj.MeasureString(safeContext);
+        float ctxTextY = badgeContextRect.Y + (badgeContextRect.Height - ctxTextSize.Y) / 2f;
+        _spriteBatch.DrawString(fontObj, safeContext, new Vector2(badgeContextRect.Right + 12, ctxTextY), new Color(225, 235, 250));
+
+        // Linha 2: Objetivo
+        var badgeObjRect = new Rectangle(objPlateRect.X + 5, objPlateRect.Y + 33, 106, 24);
+        DrawPanel(badgeObjRect, new Color(55, 42, 18), new Color(250, 204, 21), 1);
+        var badgeObjSize = fontSmall.MeasureString("OBJETIVO:");
+        float badgeObjY = badgeObjRect.Y + (badgeObjRect.Height - badgeObjSize.Y) / 2f;
+        _spriteBatch.DrawString(fontSmall, "OBJETIVO:", new Vector2(badgeObjRect.X + (badgeObjRect.Width - badgeObjSize.X) / 2f, badgeObjY), new Color(250, 204, 21));
+
+        string safeObjective = TruncateText(fontObj, objectiveText, objPlateRect.Width - 130);
+        var objTextSize = fontObj.MeasureString(safeObjective);
+        float objTextY = badgeObjRect.Y + (badgeObjRect.Height - objTextSize.Y) / 2f;
+        _spriteBatch.DrawString(fontObj, safeObjective, new Vector2(badgeObjRect.Right + 12, objTextY), new Color(254, 240, 138));
     }
 
     private void DrawLeftSuspectAndCluesPanel(GameTime gameTime, ResponsiveLayout layout)
@@ -861,7 +933,8 @@ public class InterrogationGame : Game
         DrawPanel(suspectPanel, new Color(14, 18, 28, 245), new Color(45, 75, 120), 2, new Color(24, 38, 62));
         DrawCornerRivets(suspectPanel, new Color(96, 165, 250));
 
-        var portraitRect = new Rectangle(leftX + 16, 190, 140, 148);
+        int sY = suspectPanel.Y;
+        var portraitRect = new Rectangle(leftX + 16, sY + 16, 140, 148);
         if (_isGeneratingCase)
         {
             DrawPanel(portraitRect, new Color(14, 18, 26), new Color(96, 165, 250), 2);
@@ -880,7 +953,7 @@ public class InterrogationGame : Game
 
         // Nome do suspeito com ajuste inteligente de fonte
         var fontName = fontHeader.MeasureString(displayNpcName).X <= infoWidth ? fontHeader : _fontSystem.GetFont(18);
-        _spriteBatch.DrawString(fontName, displayNpcName, new Vector2(infoX, 190), new Color(240, 244, 255));
+        _spriteBatch.DrawString(fontName, displayNpcName, new Vector2(infoX, sY + 16), new Color(240, 244, 255));
 
         // Profissão / Papel do suspeito
         var fontRole = fontTiny;
@@ -890,47 +963,47 @@ public class InterrogationGame : Game
             fontRole = _fontSystem.GetFont(13f);
             wrappedRole = WrapText(fontRole, displayNpcRole, infoWidth);
         }
-        _spriteBatch.DrawString(fontRole, wrappedRole, new Vector2(infoX, 218), new Color(165, 180, 210));
+        _spriteBatch.DrawString(fontRole, wrappedRole, new Vector2(infoX, sY + 44), new Color(165, 180, 210));
 
         // Postura Emocional
         Color emotionColor = GetEmotionColor(_state.Emotion);
         string emotionText = $"Postura: {_state.Emotion.ToString().ToUpperInvariant()}";
         var emSize = fontSmall.MeasureString(emotionText);
-        var emotionBox = new Rectangle(infoX, 244, (int)emSize.X + 22, 28);
+        var emotionBox = new Rectangle(infoX, sY + 70, (int)emSize.X + 22, 28);
         DrawPanel(emotionBox, emotionColor * 0.22f, emotionColor, 1);
         float emTextY = emotionBox.Y + (emotionBox.Height - emSize.Y) / 2f;
         _spriteBatch.DrawString(fontSmall, emotionText,
             new Vector2(emotionBox.X + 11, emTextY), emotionColor);
 
-        // Cinzeiro com cigarro e fumaça animada
-        DrawPixelCigaretteSmoke(infoX + 220, 250, gameTime);
-
         // Polígrafo Forense
         int bpm = 68 + (int)(_displayStress * 0.72f);
         _spriteBatch.DrawString(fontTiny, $"Polígrafo Forense: {bpm} BPM",
-            new Vector2(infoX, 278), bpm > 115 ? new Color(255, 110, 110) : new Color(130, 210, 175));
-        DrawPolygraphOscilloscope(new Rectangle(infoX, 296, infoWidth, 26), gameTime, bpm, bpm > 115 ? new Color(244, 63, 94) : new Color(52, 211, 153));
+            new Vector2(infoX, sY + 104), bpm > 115 ? new Color(255, 110, 110) : new Color(130, 210, 175));
+        DrawPolygraphOscilloscope(new Rectangle(infoX, sY + 122, infoWidth, 26), gameTime, bpm, bpm > 115 ? new Color(244, 63, 94) : new Color(52, 211, 153));
 
         // Medidores Psicológicos & Investigativos
-        int meterY = 338;
+        int meterY = sY + 164;
         int meterWidth = suspectPanel.Width - 32;
         int meterX = suspectPanel.X + 16;
+        int meterH = 52;
+        int availableMeterArea = suspectPanel.Bottom - meterY - 14;
+        int meterGap = Math.Clamp((availableMeterArea - (meterH * 3)) / 2, 8, 22);
 
-        DrawMeterBar(new Rectangle(meterX, meterY, meterWidth, 52),
+        DrawMeterBar(new Rectangle(meterX, meterY, meterWidth, meterH),
             "CONFIANÇA DO SUSPEITO",
             $"{_state.Trust}%",
             _displayTrust / 100f,
             new Color(56, 189, 248),
             "Sobe com empatia e acordos. Evite hostilidade sem provas.");
 
-        DrawMeterBar(new Rectangle(meterX, meterY + 62, meterWidth, 52),
+        DrawMeterBar(new Rectangle(meterX, meterY + (meterH + meterGap), meterWidth, meterH),
             "PRESSÃO PSICOLÓGICA (LIMITE: 100%)",
             $"{_state.Stress}%",
             _displayStress / 100f,
             _state.Stress >= 75 ? new Color(244, 63, 94) : new Color(245, 158, 11),
             "Em 100%, o suspeito cala-se ou sofre colapso emocional.");
 
-        DrawMeterBar(new Rectangle(meterX, meterY + 124, meterWidth, 52),
+        DrawMeterBar(new Rectangle(meterX, meterY + (meterH + meterGap) * 2, meterWidth, meterH),
             "PROGRESSO DO INQUÉRITO (META: 100%)",
             $"{_state.CaseProgress}%",
             _displayProgress / 100f,
@@ -946,7 +1019,7 @@ public class InterrogationGame : Game
         var dossieSize = fontBody.MeasureString("DOSSIÊ DE EVIDÊNCIAS FORENSES");
         float dossieY = cluesPanel.Y + 12 + (14 - dossieSize.Y) / 2f;
         _spriteBatch.DrawString(fontBody, "DOSSIÊ DE EVIDÊNCIAS FORENSES", new Vector2(cluesPanel.X + 38, dossieY), new Color(250, 204, 21));
-        _spriteBatch.DrawString(fontTiny, "Clique em uma evidência para anexá-la ao seu próximo confronto:", new Vector2(cluesPanel.X + 16, cluesPanel.Y + 32), new Color(145, 165, 195));
+        _spriteBatch.DrawString(fontTiny, "Clique em uma evidência para fixá-la ao seu próximo confronto:", new Vector2(cluesPanel.X + 16, cluesPanel.Y + 32), new Color(145, 165, 195));
 
         _clueRects.Clear();
         if (_isGeneratingCase)
@@ -956,14 +1029,24 @@ public class InterrogationGame : Game
         else
         {
             var visibleClues = _state.Clues.Take(4).ToList();
-            int clueCount = visibleClues.Count;
-            int cardH = clueCount <= 3 ? 68 : 58;
-            int gap = clueCount <= 3 ? 8 : 6;
-            int clueY = cluesPanel.Y + 54;
+            int padX = 12;
+            int gapX = 10;
+            int innerW = cluesPanel.Width - padX * 2;
+            int cardW = (innerW - gapX) / 2;
 
-            foreach (var clue in visibleClues)
+            int startY = cluesPanel.Y + 54;
+            int totalRows = Math.Max(1, (visibleClues.Count + 1) / 2);
+            int gapY = 8;
+            int availH = cluesPanel.Bottom - startY - 10;
+            int maxCardH = totalRows <= 1 ? 116 : (availH - gapY) / 2;
+            int cardH = Math.Clamp(maxCardH, 86, 122);
+
+            for (int i = 0; i < visibleClues.Count; i++)
             {
-                var cardRect = new Rectangle(cluesPanel.X + 12, clueY, cluesPanel.Width - 24, cardH);
+                var clue = visibleClues[i];
+                int col = i % 2;
+                int row = i / 2;
+                var cardRect = new Rectangle(cluesPanel.X + padX + col * (cardW + gapX), startY + row * (cardH + gapY), cardW, cardH);
                 bool hovered = cardRect.Contains(_virtualMousePos);
                 bool isSelected = ReferenceEquals(clue, _selectedClue);
 
@@ -974,9 +1057,9 @@ public class InterrogationGame : Game
 
                 if (isSelected)
                 {
-                    cardBg = new Color(55, 45, 18, 250);
+                    cardBg = new Color(55, 42, 18, 252);
                     cardBorder = new Color(250, 204, 21);
-                    innerBorder = new Color(130, 95, 20);
+                    innerBorder = new Color(140, 100, 25);
                     borderThickness = 2;
                 }
                 else if (clue.IsNew)
@@ -995,51 +1078,50 @@ public class InterrogationGame : Game
                 DrawPanel(cardRect, cardBg, cardBorder, borderThickness, innerBorder);
 
                 // Miniatura pixelart de pasta/prova forense
-                DrawPixelEvidenceCardIcon(cardRect.X + 8, cardRect.Y + (cardRect.Height - 24) / 2, isSelected ? new Color(250, 204, 21) : new Color(160, 125, 60));
+                DrawPixelEvidenceCardIcon(cardRect.X + 8, cardRect.Y + 8, isSelected ? new Color(250, 204, 21) : new Color(160, 125, 60));
 
-                string actionLabel = isSelected ? "[Soltar]" : (hovered ? "[Anexar]" : "");
-                int actWidth = 0;
-                Vector2 actSz = Vector2.Zero;
-                if (!string.IsNullOrEmpty(actionLabel))
+                // Ícone de Pushpin ("pin" estilo pinado quando anexado ou preview translúcido no hover)
+                int pinX = cardRect.Right - 18;
+                int pinY = cardRect.Y + 6;
+                if (isSelected)
                 {
-                    actSz = fontTiny.MeasureString(actionLabel);
-                    actWidth = (int)actSz.X + 8;
+                    DrawPixelPushPin(pinX, pinY, new Color(239, 68, 68), true);
+                }
+                else if (hovered)
+                {
+                    DrawPixelPushPin(pinX, pinY, new Color(148, 163, 184) * 0.55f, false);
                 }
 
-                string titleText = isSelected
-                    ? $"[✓ ANEXADA] {clue.Title}"
-                    : (clue.IsNew ? $"★ [NOVA] {clue.Title}" : $"• {clue.Title}");
+                // Título da evidência
+                string titlePrefix = clue.IsNew ? "★ " : "";
+                string titleText = $"{titlePrefix}{clue.Title}";
                 Color titleColor = isSelected ? new Color(254, 240, 138) : (clue.IsNew ? new Color(254, 240, 138) : new Color(225, 235, 252));
 
-                int maxTitleWidth = cardRect.Width - actWidth - 44;
+                int maxTitleWidth = (pinX - 6) - (cardRect.X + 34);
                 string safeTitle = TruncateText(fontSmall, titleText, maxTitleWidth);
                 var titleSz = fontSmall.MeasureString(safeTitle);
+                float titleY = cardRect.Y + 8 + (24 - titleSz.Y) / 2f;
+                _spriteBatch.DrawString(fontSmall, safeTitle, new Vector2(cardRect.X + 34, titleY), titleColor);
 
-                // Descrição com ajuste dinâmico
+                // Linha divisória sutil
+                int divY = cardRect.Y + 36;
+                DrawFilledRect(new Rectangle(cardRect.X + 8, divY, cardRect.Width - 16, 1),
+                    isSelected ? new Color(160, 120, 30) : new Color(38, 52, 75));
+
+                // Descrição com ajuste dinâmico ao espaço do card
                 var fDesc = fontTiny;
-                string wrappedDesc = WrapText(fDesc, clue.Description, cardRect.Width - 46);
+                int descW = cardRect.Width - 16;
+                string wrappedDesc = WrapText(fDesc, clue.Description, descW);
                 var descSz = fDesc.MeasureString(wrappedDesc);
-                if (descSz.Y > cardH - titleSz.Y - 14)
+                int remainH = cardRect.Bottom - divY - 6;
+                if (descSz.Y > remainH)
                 {
-                    fDesc = _fontSystem.GetFont(13f);
-                    wrappedDesc = WrapText(fDesc, clue.Description, cardRect.Width - 46);
-                    descSz = fDesc.MeasureString(wrappedDesc);
+                    fDesc = _fontSystem.GetFont(12.5f);
+                    wrappedDesc = WrapText(fDesc, clue.Description, descW);
                 }
-
-                float totalContentH = titleSz.Y + descSz.Y + 2;
-                float startContentY = cardRect.Y + (cardRect.Height - totalContentH) / 2f;
-
-                if (!string.IsNullOrEmpty(actionLabel))
-                {
-                    Color actionCol = isSelected ? new Color(250, 204, 21) : new Color(147, 197, 253);
-                    _spriteBatch.DrawString(fontTiny, actionLabel, new Vector2(cardRect.Right - actSz.X - 10, startContentY), actionCol);
-                }
-
-                _spriteBatch.DrawString(fontSmall, safeTitle, new Vector2(cardRect.X + 34, startContentY), titleColor);
-                _spriteBatch.DrawString(fDesc, wrappedDesc, new Vector2(cardRect.X + 34, startContentY + titleSz.Y + 2), new Color(175, 190, 215));
+                _spriteBatch.DrawString(fDesc, wrappedDesc, new Vector2(cardRect.X + 8, divY + 5), new Color(175, 190, 215));
 
                 _clueRects.Add((cardRect, clue));
-                clueY += cardH + gap;
             }
         }
     }
@@ -1087,7 +1169,7 @@ public class InterrogationGame : Game
             bool needsRebuild =
                 _lastCacheTurnCount != _state.TurnRecords.Count ||
                 _lastCacheTypewriterChars != currentTypewriterInt ||
-                _lastCacheFocusMode != _focusCurrentTurnOnly ||
+                _lastCacheSelectedTurn != _selectedViewTurn ||
                 _lastCacheWaitingLlm != _isWaitingForLlm ||
                 _lastCacheCaseTitle != _state.CaseTitle ||
                 _lastCacheInnerWidth != innerWidth;
@@ -1096,7 +1178,7 @@ public class InterrogationGame : Game
             {
                 _lastCacheTurnCount = _state.TurnRecords.Count;
                 _lastCacheTypewriterChars = currentTypewriterInt;
-                _lastCacheFocusMode = _focusCurrentTurnOnly;
+                _lastCacheSelectedTurn = _selectedViewTurn;
                 _lastCacheWaitingLlm = _isWaitingForLlm;
                 _lastCacheCaseTitle = _state.CaseTitle;
                 _lastCacheInnerWidth = innerWidth;
@@ -1104,14 +1186,23 @@ public class InterrogationGame : Game
                 _cachedLayoutBlocks.Clear();
                 _cachedTotalContentHeight = 18;
 
-                var recordsToShow = _focusCurrentTurnOnly && _state.TurnRecords.Count > 0
-                    ? new List<TurnRecord> { _state.TurnRecords[^1] }
-                    : _state.TurnRecords;
+                var recordsToShow = new List<TurnRecord>();
+                bool isViewingCurrentTurn = _selectedViewTurn == _state.CurrentTurn && _state.Outcome == GameOutcome.EmAndamento;
+
+                int recordIndex = _selectedViewTurn - 1;
+                if (recordIndex >= 0 && recordIndex < _state.TurnRecords.Count)
+                {
+                    recordsToShow.Add(_state.TurnRecords[recordIndex]);
+                }
+                else if (_state.TurnRecords.Count > 0)
+                {
+                    recordsToShow.Add(_state.TurnRecords[^1]);
+                }
 
                 for (int i = 0; i < recordsToShow.Count; i++)
                 {
                     var rec = recordsToShow[i];
-                    bool isLatest = ReferenceEquals(rec, _state.TurnRecords[^1]) && !_isWaitingForLlm;
+                    bool isLatest = isViewingCurrentTurn && ReferenceEquals(rec, _state.TurnRecords[^1]) && !_isWaitingForLlm;
 
                     string npcTextToRender = rec.NpcDialogue;
                     if (isLatest && currentTypewriterInt < npcTextToRender.Length)
@@ -1133,7 +1224,7 @@ public class InterrogationGame : Game
 
                 _cachedPendingBlockHeight = 0;
                 _cachedWrappedPendingPlayer = string.Empty;
-                if (_isWaitingForLlm)
+                if (_isWaitingForLlm && isViewingCurrentTurn)
                 {
                     _cachedWrappedPendingPlayer = WrapText(fontBody, $"\"{_pendingPlayerAction}\"", (int)(innerWidth * 0.78f) - 32);
                     int pTextH = (int)fontBody.MeasureString(_cachedWrappedPendingPlayer).Y;
@@ -1143,8 +1234,8 @@ public class InterrogationGame : Game
             }
 
             _maxChatScroll = Math.Max(0f, _cachedTotalContentHeight - (stagePanel.Height - 18));
-            if (_autoScrollToBottom || _focusCurrentTurnOnly)
-                _chatScrollOffset = _focusCurrentTurnOnly ? 0f : _maxChatScroll;
+            if (_autoScrollToBottom)
+                _chatScrollOffset = _maxChatScroll;
 
             _spriteBatch.End();
             var prevScissor = GraphicsDevice.ScissorRectangle;
@@ -1162,7 +1253,7 @@ public class InterrogationGame : Game
                 drawY += blockH + 22;
             }
 
-            if (_isWaitingForLlm)
+            if (_isWaitingForLlm && _selectedViewTurn == _state.CurrentTurn)
             {
                 DrawPendingTurnBlock(new Rectangle(stagePanel.X + 16, drawY, innerWidth, _cachedPendingBlockHeight),
                     _state.CurrentTurn, _cachedWrappedPendingPlayer, fontSmall, fontBody, gameTime);
@@ -1172,7 +1263,7 @@ public class InterrogationGame : Game
             GraphicsDevice.ScissorRectangle = prevScissor;
             _spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend, SamplerState.LinearClamp);
 
-            if (_maxChatScroll > 0 && !_focusCurrentTurnOnly)
+            if (_maxChatScroll > 0)
             {
                 int trackHeight = stagePanel.Height - 16;
                 int thumbHeight = Math.Max(40, (int)(trackHeight * (stagePanel.Height / (float)_cachedTotalContentHeight)));
@@ -1225,7 +1316,9 @@ public class InterrogationGame : Game
             string wrappedEndSub = WrapText(fontBody, endSub, endPanelRect.Width - 48);
             _spriteBatch.DrawString(fontBody, wrappedEndSub, new Vector2(endPanelRect.X + 24, endPanelRect.Y + 58), Color.White);
 
-            var restartBtnRect = new Rectangle(endPanelRect.X + 24, endPanelRect.Y + 148, endPanelRect.Width - 48, 48);
+            int restartBtnH = 48;
+            int restartBtnY = Math.Max(endPanelRect.Y + 140, endPanelRect.Bottom - restartBtnH - 24);
+            var restartBtnRect = new Rectangle(endPanelRect.X + 24, restartBtnY, endPanelRect.Width - 48, restartBtnH);
             bool hoverRestart = restartBtnRect.Contains(_virtualMousePos);
             DrawPanel(restartBtnRect, hoverRestart ? new Color(37, 99, 235) : new Color(29, 78, 216), new Color(147, 197, 253), 2);
             int iconY = restartBtnRect.Y + (restartBtnRect.Height - 14) / 2;
@@ -1243,11 +1336,11 @@ public class InterrogationGame : Game
             {
                 string headerLeft = _isWaitingForLlm
                     ? "O silêncio pesa na sala... O suspeito mede cada palavra..."
-                    : "INTERROGAR SUSPEITO [1-4]:";
+                    : "INTERROGAR SUSPEITO:";
                 _spriteBatch.DrawString(fontSmall, headerLeft, new Vector2(rightX + 4, optionsAreaY + 1), new Color(165, 185, 225));
                 var headerLeftSize = fontSmall.MeasureString(headerLeft);
 
-                string clearText = "[✕ DESANEXAR]";
+                string clearText = "[✕ DESAFIXAR]";
                 var clearBtnSize = fontSmall.MeasureString(clearText);
                 int clearBtnH = (int)clearBtnSize.Y + 8;
                 _clearClueButtonRect = new Rectangle(rightX + rightWidth - (int)clearBtnSize.X - 18, optionsAreaY - 2, (int)clearBtnSize.X + 16, clearBtnH);
@@ -1256,7 +1349,7 @@ public class InterrogationGame : Game
                 float clearTextY = _clearClueButtonRect.Y + (_clearClueButtonRect.Height - clearBtnSize.Y) / 2f;
                 _spriteBatch.DrawString(fontSmall, clearText, new Vector2(_clearClueButtonRect.X + 8, clearTextY), Color.White);
 
-                string clueBanner = $"📂 PROVA ANEXADA: {_selectedClue.Title}";
+                string clueBanner = $"📌 PROVA FIXADA: {_selectedClue.Title}";
                 int bannerStartX = rightX + (int)headerLeftSize.X + 16;
                 int maxBannerW = _clearClueButtonRect.Left - bannerStartX - 16;
                 if (maxBannerW > 60)
@@ -1270,14 +1363,16 @@ public class InterrogationGame : Game
                 _clearClueButtonRect = Rectangle.Empty;
                 string headerText = _isWaitingForLlm
                     ? "O silêncio pesa na sala... O suspeito mede cada palavra..."
-                    : "INTERROGAR SUSPEITO [Escolha uma linha de inquirição ou pressione 1, 2, 3, 4]:";
+                    : "INTERROGAR SUSPEITO [Escolha uma linha de inquirição]:";
                 Color headerColor = _isWaitingForLlm ? new Color(250, 204, 21) : new Color(165, 185, 225);
                 _spriteBatch.DrawString(fontSmall, headerText, new Vector2(rightX + 4, optionsAreaY + 1), headerColor);
             }
 
             int startCardY = optionsAreaY + 24;
-            int cardHeight = 50;
-            int cardGap = 6;
+            int cardGap = 8;
+            int count = Math.Max(1, activeOptions.Count);
+            int availableCardsH = optionsAreaHeight - 26;
+            int cardHeight = Math.Max(48, (availableCardsH - (cardGap * (count - 1))) / count);
 
             for (int i = 0; i < activeOptions.Count; i++)
             {
@@ -1329,9 +1424,9 @@ public class InterrogationGame : Game
                     "Revelacao" or "Final" => "⚖️",
                     _ => "🔍"
                 };
-                string badge = $"[{i + 1}] {categoryIcon} {opt.Tag}";
+                string badge = $"{categoryIcon} {opt.Tag}";
                 var badgeSize = fontSmall.MeasureString(badge);
-                int badgeH = 32;
+                int badgeH = 34;
                 var badgeRect = new Rectangle(cardRect.X + 8, cardRect.Y + (cardRect.Height - badgeH) / 2, (int)badgeSize.X + 18, badgeH);
                 DrawPanel(badgeRect, tagColor * 0.18f, tagColor * 0.7f, 1);
                 float badgeTextY = badgeRect.Y + (badgeRect.Height - badgeSize.Y) / 2f;
@@ -1391,24 +1486,42 @@ public class InterrogationGame : Game
 
     private void DrawTurnTimelineBar(Rectangle rect, DynamicSpriteFont fontTitle, DynamicSpriteFont fontSmall)
     {
+        _timelineTurnPillRects.Clear();
         DrawPanel(rect, new Color(21, 27, 40), new Color(52, 68, 98), 1);
 
-        string mainTurnLabel = _state.Outcome == GameOutcome.EmAndamento
-            ? $"REGISTRO CRONOLÓGICO: TURNO {_state.CurrentTurn:00} / {_state.MaxTurns:00}"
-            : ((_state.Outcome is GameOutcome.VitoriaConfissao or GameOutcome.VitoriaInocencia) ? "INQUÉRITO CONCLUÍDO COM SUCESSO!" : "INTERROGATÓRIO ENCERRADO");
+        bool isViewingHistory = _selectedViewTurn != _state.CurrentTurn;
 
-        Color turnLabelColor = _state.CurrentTurn >= _state.MaxTurns - 2
-            ? new Color(251, 146, 60)
-            : new Color(125, 211, 252);
+        string mainTurnLabel;
+        Color turnLabelColor;
+        string subStatus;
+
+        if (_state.Outcome != GameOutcome.EmAndamento)
+        {
+            mainTurnLabel = (_state.Outcome is GameOutcome.VitoriaConfissao or GameOutcome.VitoriaInocencia)
+                ? "INQUÉRITO CONCLUÍDO COM SUCESSO!"
+                : "INTERROGATÓRIO ENCERRADO";
+            turnLabelColor = new Color(250, 204, 21);
+            subStatus = $"ARQUIVO FORENSE • Visualizando Turno {_selectedViewTurn:00} • Pressione [F5] para novo caso";
+        }
+        else if (isViewingHistory)
+        {
+            mainTurnLabel = $"ARQUIVO HISTÓRICO: TURNO {_selectedViewTurn:00} DE {_state.MaxTurns:00}";
+            turnLabelColor = new Color(250, 204, 21);
+            subStatus = $"CONSULTANDO HISTÓRICO • Clique no botão [{_state.CurrentTurn:00}] para voltar ao turno atual";
+        }
+        else
+        {
+            mainTurnLabel = $"REGISTRO CRONOLÓGICO: TURNO {_state.CurrentTurn:00} / {_state.MaxTurns:00}";
+            turnLabelColor = _state.CurrentTurn >= _state.MaxTurns - 2
+                ? new Color(251, 146, 60)
+                : new Color(125, 211, 252);
+            int remaining = Math.Max(0, _state.MaxTurns - _state.CurrentTurn + 1);
+            subStatus = _isWaitingForLlm
+                ? "O silêncio pesa na sala... O suspeito mede cada palavra..."
+                : $"SUA VEZ DE AGIR • Restam {remaining} turno(s) até a chegada do advogado de defesa";
+        }
 
         _spriteBatch.DrawString(fontTitle, mainTurnLabel, new Vector2(rect.X + 16, rect.Y + 8), turnLabelColor);
-
-        int remaining = Math.Max(0, _state.MaxTurns - _state.CurrentTurn + 1);
-        string subStatus = _isWaitingForLlm
-            ? "O silêncio pesa na sala... O suspeito mede cada palavra..."
-            : (_state.Outcome == GameOutcome.EmAndamento
-                ? $"SUA VEZ DE AGIR • Restam {remaining} turno(s) até a chegada do advogado de defesa"
-                : "Pressione [F5] no topo para assumir um novo inquérito policial");
         _spriteBatch.DrawString(fontSmall, subStatus, new Vector2(rect.X + 16, rect.Y + 35), new Color(190, 205, 230));
 
         int pillWidth = 38;
@@ -1422,31 +1535,55 @@ public class InterrogationGame : Game
             var pillRect = new Rectangle(startX + (t - 1) * (pillWidth + spacing), pillY, pillWidth, pillHeight);
             bool isPast = t < _state.CurrentTurn || (_state.Outcome != GameOutcome.EmAndamento && t <= _state.CurrentTurn);
             bool isCurrent = t == _state.CurrentTurn && _state.Outcome == GameOutcome.EmAndamento;
+            bool isAvailable = isPast || isCurrent;
+            bool isSelected = t == _selectedViewTurn;
+            bool hover = isAvailable && pillRect.Contains(_virtualMousePos);
+
+            if (isAvailable)
+            {
+                _timelineTurnPillRects.Add((pillRect, t));
+            }
 
             Color bg;
             Color border;
             Color numColor;
+            int borderWidth = (isSelected || isCurrent) ? 2 : 1;
 
-            if (isCurrent)
+            if (isSelected)
             {
-                bg = new Color(37, 99, 235);
-                border = new Color(191, 219, 254);
-                numColor = Color.White;
+                if (isCurrent)
+                {
+                    bg = hover ? new Color(45, 115, 250) : new Color(37, 99, 235);
+                    border = new Color(220, 235, 255);
+                    numColor = Color.White;
+                }
+                else
+                {
+                    bg = hover ? new Color(120, 85, 25) : new Color(95, 68, 18);
+                    border = new Color(250, 204, 21);
+                    numColor = new Color(254, 240, 138);
+                }
+            }
+            else if (isCurrent)
+            {
+                bg = hover ? new Color(28, 65, 120) : new Color(20, 48, 92);
+                border = new Color(96, 165, 250);
+                numColor = new Color(186, 215, 255);
             }
             else if (isPast)
             {
-                bg = new Color(24, 52, 48);
-                border = new Color(52, 211, 153);
-                numColor = new Color(110, 231, 183);
+                bg = hover ? new Color(34, 72, 62) : new Color(20, 44, 40);
+                border = hover ? new Color(110, 231, 183) : new Color(52, 211, 153);
+                numColor = hover ? Color.White : new Color(110, 231, 183);
             }
             else
             {
                 bg = new Color(15, 19, 28);
                 border = t >= _state.MaxTurns - 1 ? new Color(120, 50, 60) : new Color(42, 52, 72);
-                numColor = new Color(110, 125, 150);
+                numColor = new Color(80, 95, 120);
             }
 
-            DrawPanel(pillRect, bg, border, isCurrent ? 2 : 1);
+            DrawPanel(pillRect, bg, border, borderWidth);
             string numStr = t.ToString();
             var sz = fontSmall.MeasureString(numStr);
             _spriteBatch.DrawString(fontSmall, numStr,
@@ -1509,8 +1646,8 @@ public class InterrogationGame : Game
         int curY = rect.Y;
 
         string headerLabel = rec.IsOpeningScene
-            ? "ABERTURA DO INTERROGATÓRIO • SITUAÇÃO INICIAL"
-            : (isLatest ? $"★ TURNO {rec.TurnNumber} DE {_state.MaxTurns} (RESPOSTA MAIS RECENTE)" : $"TURNO {rec.TurnNumber} DE {_state.MaxTurns} (CONCLUÍDO)");
+            ? "ABERTURA DO INTERROGATÓRIO • SITUAÇÃO INICIAL (TURNO 01)"
+            : (isLatest ? $"★ TURNO {_selectedViewTurn:00} DE {_state.MaxTurns:00} (RESPOSTA MAIS RECENTE)" : $"TURNO {_selectedViewTurn:00} DE {_state.MaxTurns:00} (ARQUIVO HISTÓRICO)");
 
         Color headerColor = isLatest ? new Color(250, 204, 21) : new Color(130, 148, 180);
         DrawFilledRect(new Rectangle(rect.X, curY + 14, rect.Width, 1), new Color(42, 54, 78) * opacity);
@@ -2007,6 +2144,47 @@ public class InterrogationGame : Game
     }
 
 
+
+    /// <summary>
+    /// Alfinete de mapa / percevejo de quadro de cortiça estilo noir ("pinado").
+    /// </summary>
+    private void DrawPixelPushPin(int x, int y, Color headColor, bool isPinned)
+    {
+        if (isPinned)
+        {
+            // Sombra projetada no papel
+            DrawFilledRect(new Rectangle(x + 5, y + 8, 4, 4), Color.Black * 0.40f);
+
+            // Agulha metálica prateada fincada no papel
+            DrawFilledRect(new Rectangle(x + 4, y + 7, 2, 5), new Color(203, 213, 225));
+            DrawFilledRect(new Rectangle(x + 5, y + 8, 1, 4), new Color(100, 116, 139));
+            DrawFilledRect(new Rectangle(x + 4, y + 11, 2, 2), new Color(51, 65, 85));
+
+            // Cabeça plástica do percevejo
+            Color darkRim = new Color(
+                (int)(headColor.R * 0.55f),
+                (int)(headColor.G * 0.55f),
+                (int)(headColor.B * 0.55f),
+                headColor.A);
+
+            Color highlight = new Color(255, 235, 235);
+
+            DrawFilledRect(new Rectangle(x + 2, y, 6, 2), darkRim);
+            DrawFilledRect(new Rectangle(x + 1, y + 2, 8, 3), headColor);
+            DrawFilledRect(new Rectangle(x + 2, y + 2, 2, 2), highlight);
+            DrawFilledRect(new Rectangle(x + 3, y + 5, 4, 2), headColor);
+            DrawFilledRect(new Rectangle(x + 2, y + 7, 6, 1), darkRim);
+        }
+        else
+        {
+            // Silhueta translúcida indicativa de fixação ao passar o mouse (hover)
+            DrawFilledRect(new Rectangle(x + 2, y, 6, 2), headColor);
+            DrawFilledRect(new Rectangle(x + 1, y + 2, 8, 3), headColor);
+            DrawFilledRect(new Rectangle(x + 3, y + 5, 4, 2), headColor);
+            DrawFilledRect(new Rectangle(x + 2, y + 7, 6, 1), headColor);
+            DrawFilledRect(new Rectangle(x + 4, y + 8, 2, 4), headColor);
+        }
+    }
 
     /// <summary>
     /// Ícone pixel art de Fechar Janela (X estilizado 10x10).
