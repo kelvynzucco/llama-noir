@@ -1,2 +1,2 @@
-using var game = new LlamaInterrogation.InterrogationGame();
+using var game = new LlamaNoir.InterrogationGame();
 game.Run();

@@ -1,8 +1,8 @@
 using System.Threading;
 using System.Threading.Tasks;
-using LlamaInterrogation.Models;
+using LlamaNoir.Models;
 
-namespace LlamaInterrogation.Services;
+namespace LlamaNoir.Services;
 
 public interface ILlmTurnProvider
 {

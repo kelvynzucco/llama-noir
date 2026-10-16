@@ -9,9 +9,9 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using LlamaInterrogation.Models;
+using LlamaNoir.Models;
 
-namespace LlamaInterrogation.Services;
+namespace LlamaNoir.Services;
 
 /// <summary>
 /// Cliente HTTP + Diretor de Jogo Noir + Gerenciador automático do servidor local Llamafile (Qwen 2.5 3B Instruct Abliterated).
@@ -57,6 +57,42 @@ public class LlamafileTurnProvider : ILlmTurnProvider, IDisposable
         // Limita o uso de CPU em ~80% dos núcleos lógicos (ex: 6 de 8 threads)
         int targetThreads = (int)Math.Round(logicalCores * 0.80);
         return Math.Clamp(targetThreads, 2, 12);
+    }
+
+    public string GetTargetLlamafileDirectory()
+    {
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        string currentDir = Directory.GetCurrentDirectory();
+        string projectRoot = Path.GetFullPath(Path.Combine(baseDir, "..", "..", ".."));
+
+        string existingExe = FindFile("llamafile.exe", currentDir, baseDir, projectRoot);
+        if (!string.IsNullOrEmpty(existingExe))
+            return Path.GetDirectoryName(existingExe)!;
+
+        string target = Path.Combine(baseDir, "llamafile");
+        if (!Directory.Exists(target))
+        {
+            string curLlama = Path.Combine(currentDir, "llamafile");
+            if (Directory.Exists(curLlama))
+                return curLlama;
+        }
+        return target;
+    }
+
+    public bool HasRequiredFiles(out bool hasExe, out bool hasModel, out string targetDir)
+    {
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        string currentDir = Directory.GetCurrentDirectory();
+        string projectRoot = Path.GetFullPath(Path.Combine(baseDir, "..", "..", ".."));
+
+        string llamafileExe = FindFile("llamafile.exe", currentDir, baseDir, projectRoot);
+        string ggufModel = FindModelFile(currentDir, baseDir, projectRoot);
+
+        hasExe = !string.IsNullOrEmpty(llamafileExe);
+        hasModel = !string.IsNullOrEmpty(ggufModel);
+        targetDir = GetTargetLlamafileDirectory();
+
+        return hasExe && hasModel;
     }
 
     public async Task<bool> EnsureServerRunningAsync(Action<string>? onStatusUpdate = null, CancellationToken cancellationToken = default)

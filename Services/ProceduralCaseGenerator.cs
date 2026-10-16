@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using LlamaInterrogation.Models;
+using LlamaNoir.Models;
 
-namespace LlamaInterrogation.Services;
+namespace LlamaNoir.Services;
 
 public class ClueBlueprint
 {

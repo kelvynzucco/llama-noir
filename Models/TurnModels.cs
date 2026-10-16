@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace LlamaInterrogation.Models;
+namespace LlamaNoir.Models;
 
 public enum EmotionalState
 {

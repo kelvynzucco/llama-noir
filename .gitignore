@@ -1,6 +1,8 @@
 # Compilação e Binários do .NET
 bin/
 obj/
+publish/
+*.zip
 
 # Logs e scripts locais
 *.log

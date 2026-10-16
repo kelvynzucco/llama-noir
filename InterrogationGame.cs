@@ -4,13 +4,13 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using FontStashSharp;
-using LlamaInterrogation.Models;
-using LlamaInterrogation.Services;
+using LlamaNoir.Models;
+using LlamaNoir.Services;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
-namespace LlamaInterrogation;
+namespace LlamaNoir;
 
 public class InterrogationGame : Game
 {
@@ -23,8 +23,14 @@ public class InterrogationGame : Game
     private RasterizerState _scissorRasterizer = null!;
 
     private readonly InterrogationState _state = new();
-    private readonly MockLlmTurnProvider _mockProvider = new();
     private readonly LlamafileTurnProvider _llamafileProvider = new("http://127.0.0.1:8080");
+    private readonly AiModelDownloader _aiDownloader = new();
+    private bool _isAiSetupRequired = false;
+    private string _aiSetupStatus = string.Empty;
+    private Rectangle _btnDownloadAiRect;
+    private Rectangle _btnOpenLlamaFolderRect;
+    private Rectangle _btnRecheckAiRect;
+    private Rectangle _btnCancelDownloadRect;
 
     private bool _isWaitingForLlm = false;
     private bool _isGeneratingCase = false;
@@ -78,7 +84,17 @@ public class InterrogationGame : Game
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
 
+    [System.Runtime.InteropServices.DllImport("user32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+    private static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Auto)]
+    private static extern IntPtr LoadImage(IntPtr hinst, string lpszName, uint uType, int cxDesired, int cyDesired, uint fuLoad);
+
     private const int SW_MINIMIZE = 6;
+    private const uint WM_SETICON = 0x0080;
+    private const uint IMAGE_ICON = 1;
+    private const uint LR_LOADFROMFILE = 0x00000010;
+    private const uint LR_DEFAULTSIZE = 0x00000040;
 
     private Point _virtualMousePos = Point.Zero;
 
@@ -106,10 +122,42 @@ public class InterrogationGame : Game
             HardwareModeSwitch = false,
             SynchronizeWithVerticalRetrace = true
         };
-        Window.Title = "DELEGACIA CENTRAL 1947 • SALA DE INTERROGATÓRIO NOIR";
+        Window.Title = "LlamaNoir • Sala de Interrogatório Policial";
         Window.AllowUserResizing = false;
         Window.IsBorderless = true;
         IsMouseVisible = true;
+    }
+
+    private void TrySetGameIcon(string icoPath)
+    {
+        if (!OperatingSystem.IsWindows() || !File.Exists(icoPath))
+            return;
+
+        try
+        {
+            IntPtr hIconBig = LoadImage(IntPtr.Zero, icoPath, IMAGE_ICON, 0, 0, LR_LOADFROMFILE | LR_DEFAULTSIZE);
+            IntPtr hIconSmall = LoadImage(IntPtr.Zero, icoPath, IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+
+            var handles = new List<IntPtr>();
+            if (Window.Handle != IntPtr.Zero) handles.Add(Window.Handle);
+            try
+            {
+                IntPtr procHwnd = System.Diagnostics.Process.GetCurrentProcess().MainWindowHandle;
+                if (procHwnd != IntPtr.Zero && !handles.Contains(procHwnd)) handles.Add(procHwnd);
+            }
+            catch { }
+            IntPtr activeHwnd = GetActiveWindow();
+            if (activeHwnd != IntPtr.Zero && !handles.Contains(activeHwnd)) handles.Add(activeHwnd);
+
+            foreach (var h in handles)
+            {
+                if (hIconBig != IntPtr.Zero)
+                    SendMessage(h, WM_SETICON, (IntPtr)1, hIconBig);
+                if (hIconSmall != IntPtr.Zero)
+                    SendMessage(h, WM_SETICON, (IntPtr)0, hIconSmall);
+            }
+        }
+        catch { }
     }
 
     protected override void Initialize()
@@ -128,8 +176,32 @@ public class InterrogationGame : Game
         _graphics.HardwareModeSwitch = false;
         _graphics.ApplyChanges();
 
-        // Já abre o jogo encontrando e gerando um caso aleatório inédito!
-        _ = GenerateNewProceduralCaseAsync();
+        bool hasAi = _llamafileProvider.HasRequiredFiles(out bool hasExe, out bool hasModel, out _);
+        if (!hasAi)
+        {
+            _isAiSetupRequired = true;
+            _aiSetupStatus = $"Motor Llamafile: {(hasExe ? "Instalado" : "Não encontrado")} • Modelo Qwen 2.5 3B: {(hasModel ? "Instalado" : "Não encontrado")}";
+        }
+        else
+        {
+            _isAiSetupRequired = false;
+            _ = GenerateNewProceduralCaseAsync();
+        }
+    }
+
+    private void StartAiDownload()
+    {
+        if (_aiDownloader.IsDownloading) return;
+        string targetDir = _llamafileProvider.GetTargetLlamafileDirectory();
+        _ = Task.Run(async () =>
+        {
+            bool ok = await _aiDownloader.StartDownloadAsync(targetDir);
+            if (ok)
+            {
+                _isAiSetupRequired = false;
+                _ = GenerateNewProceduralCaseAsync();
+            }
+        });
     }
 
     protected override void OnExiting(object sender, ExitingEventArgs args)
@@ -180,6 +252,9 @@ public class InterrogationGame : Game
             catch { }
         }
 
+        string icoFile = Path.Combine(assetsDir, "Distintivo.ico");
+        TrySetGameIcon(icoFile);
+
         _fontSystem = new FontSystem();
         string[] candidateFonts =
         {
@@ -221,6 +296,72 @@ public class InterrogationGame : Game
         var mouse = Mouse.GetState();
 
         _virtualMousePos = mouse.Position;
+
+        if (_isAiSetupRequired)
+        {
+            bool leftClickSetup = mouse.LeftButton == ButtonState.Pressed && _prevMouse.LeftButton == ButtonState.Released;
+            if (leftClickSetup)
+            {
+                Point mp = _virtualMousePos;
+                if (_windowCloseRect.Contains(mp))
+                {
+                    Exit();
+                    return;
+                }
+                if (_windowMinimizeRect.Contains(mp))
+                {
+                    MinimizeGameWindow();
+                    return;
+                }
+
+                if (_aiDownloader.IsDownloading)
+                {
+                    if (_btnCancelDownloadRect.Contains(mp))
+                    {
+                        _aiDownloader.Cancel();
+                    }
+                }
+                else
+                {
+                    if (_btnDownloadAiRect.Contains(mp))
+                    {
+                        StartAiDownload();
+                    }
+                    else if (_btnOpenLlamaFolderRect.Contains(mp))
+                    {
+                        string dir = _llamafileProvider.GetTargetLlamafileDirectory();
+                        Directory.CreateDirectory(dir);
+                        try
+                        {
+                            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                            {
+                                FileName = dir,
+                                UseShellExecute = true
+                            });
+                        }
+                        catch { }
+                    }
+                    else if (_btnRecheckAiRect.Contains(mp))
+                    {
+                        bool hasAi = _llamafileProvider.HasRequiredFiles(out bool hasExe, out bool hasModel, out _);
+                        if (hasAi)
+                        {
+                            _isAiSetupRequired = false;
+                            _ = GenerateNewProceduralCaseAsync();
+                        }
+                        else
+                        {
+                            _aiSetupStatus = $"Motor Llamafile: {(hasExe ? "Instalado" : "Não encontrado")} • Modelo Qwen 2.5 3B: {(hasModel ? "Instalado" : "Não encontrado")}";
+                        }
+                    }
+                }
+            }
+
+            _prevMouse = mouse;
+            _prevKeyboard = keyboard;
+            base.Update(gameTime);
+            return;
+        }
 
         // Atalhos de função
         if (keyboard.IsKeyDown(Keys.F5) && !_prevKeyboard.IsKeyDown(Keys.F5))
@@ -405,9 +546,9 @@ public class InterrogationGame : Game
         }
         catch
         {
-            var fallbackCase = await _mockProvider.GenerateNewCaseAsync();
-            _state.ApplyGeneratedCase(fallbackCase);
-            _statusBanner = $"Inquérito Aberto: {_state.CaseTitle} • Suspeito: {_state.NpcName}";
+            _statusBanner = "Erro ao conectar com o Agente de IA. Verifique se o Llamafile está ativo ou pressione [F5] para tentar novamente.";
+            _isGeneratingCase = false;
+            return;
         }
 
         _autoScrollToBottom = true;
@@ -748,6 +889,19 @@ public class InterrogationGame : Game
             DrawFilledRect(new Rectangle(layout.MarginX - 8, 72, layout.TotalContentWidth + 16, layout.FooterY - 72 + 4), new Color(11, 15, 24, 185));
         }
 
+        if (_isAiSetupRequired)
+        {
+            DrawAiTopBar(gameTime, layout);
+            DrawAiSetupScreen(gameTime, layout);
+            string setupFooter = _aiDownloader.IsDownloading
+                ? "Baixando componentes de Inteligência Artificial local... Aguarde a conclusão para iniciar o inquérito policial."
+                : "Aguardando instalação do Agente de IA para início do inquérito policial.";
+            DrawCustomFooterStatusBar(layout.MarginX, layout.FooterY, layout.TotalContentWidth, setupFooter);
+            _spriteBatch.End();
+            base.Draw(gameTime);
+            return;
+        }
+
         DrawTopBar(gameTime, layout);
         DrawLeftSuspectAndCluesPanel(gameTime, layout);
         DrawRightConversationPanel(gameTime, layout);
@@ -756,6 +910,210 @@ public class InterrogationGame : Game
         _spriteBatch.End();
 
         base.Draw(gameTime);
+    }
+
+    private void DrawCustomFooterStatusBar(int marginX, int footerY, int totalWidth, string message)
+    {
+        var fontSub = _fontSystem.GetFont(16);
+        string safeFooter = TruncateText(fontSub, message, totalWidth - 8);
+        var sz = fontSub.MeasureString(safeFooter);
+        float textX = marginX + (totalWidth - sz.X) / 2f;
+        _spriteBatch.DrawString(fontSub, safeFooter, new Vector2(textX, footerY), new Color(148, 163, 184));
+    }
+
+    private void DrawAiTopBar(GameTime gameTime, ResponsiveLayout layout)
+    {
+        var fontTitle = _fontSystem.GetFont(22);
+        var fontSub = _fontSystem.GetFont(16);
+
+        var topRect = new Rectangle(0, 0, layout.ScreenWidth, 68);
+        DrawPanel(topRect, new Color(14, 18, 28, 252), new Color(42, 68, 110), 1, new Color(22, 36, 60));
+        DrawFilledRect(new Rectangle(0, 67, layout.ScreenWidth, 1), new Color(202, 138, 4, 180));
+        DrawCornerRivets(new Rectangle(12, 10, layout.ScreenWidth - 24, 48), new Color(250, 204, 21));
+
+        if (_badgeTexture != null)
+        {
+            _spriteBatch.Draw(_badgeTexture, new Rectangle(20, 7, 36, 54), Color.White);
+        }
+        else
+        {
+            DrawPixelBadge(20, 16, new Color(250, 204, 21));
+        }
+
+        _spriteBatch.DrawString(fontTitle, "LLAMANOIR", new Vector2(68, 13), new Color(254, 240, 138));
+        _spriteBatch.DrawString(fontSub, "SALA DE INTERROGATÓRIO POLICIAL • DEPARTAMENTO DE HOMICÍDIOS 1947", new Vector2(68, 38), new Color(186, 230, 253));
+
+        // Botão Fechar [X]
+        _windowCloseRect = new Rectangle(layout.ScreenWidth - 46, 16, 32, 32);
+        bool hoverClose = _windowCloseRect.Contains(_virtualMousePos);
+        DrawPanel(_windowCloseRect,
+            hoverClose ? new Color(185, 28, 28) : new Color(26, 34, 48),
+            hoverClose ? new Color(248, 113, 113) : new Color(64, 88, 128),
+            1);
+        DrawPixelWindowClose(_windowCloseRect.X + 11, _windowCloseRect.Y + 11, hoverClose ? Color.White : new Color(200, 215, 235));
+
+        // Botão Minimizar [-]
+        _windowMinimizeRect = new Rectangle(_windowCloseRect.Left - 38, 16, 32, 32);
+        bool hoverMin = _windowMinimizeRect.Contains(_virtualMousePos);
+        DrawPanel(_windowMinimizeRect,
+            hoverMin ? new Color(42, 60, 92) : new Color(26, 34, 48),
+            hoverMin ? new Color(96, 165, 250) : new Color(64, 88, 128),
+            1);
+        DrawPixelWindowMinimize(_windowMinimizeRect.X + 11, _windowMinimizeRect.Y + 11, hoverMin ? Color.White : new Color(200, 215, 235));
+    }
+
+    private void DrawAiSetupScreen(GameTime gameTime, ResponsiveLayout layout)
+    {
+        var fontLarge = _fontSystem.GetFont(22);
+        var fontTitle = _fontSystem.GetFont(19);
+        var fontBody = _fontSystem.GetFont(16);
+        var fontSmall = _fontSystem.GetFont(15);
+        var fontTiny = _fontSystem.GetFont(13);
+
+        int modalW = Math.Min(960, layout.TotalContentWidth);
+        int modalH = Math.Min(540, layout.ScreenHeight - 160);
+        int modalX = layout.MarginX + (layout.TotalContentWidth - modalW) / 2;
+        int modalY = 84 + (layout.ScreenHeight - 84 - 50 - modalH) / 2;
+        var modalRect = new Rectangle(modalX, modalY, modalW, modalH);
+
+        // Painel Principal com visual Noir e rebites dourados
+        DrawPanel(modalRect, new Color(14, 18, 28, 252), new Color(45, 75, 120), 2, new Color(22, 36, 60));
+        DrawCornerRivets(modalRect, new Color(250, 204, 21));
+
+        // Carimbo de Notificação Forense
+        var stampRect = new Rectangle(modalRect.X + 24, modalRect.Y + 20, modalRect.Width - 48, 38);
+        DrawRetroStamp(stampRect, "COMUNICADO FORENSE — CONEXÃO COM AGENTE DE IA OBRIGATÓRIA", new Color(250, 204, 21), fontTitle);
+
+        int contentX = modalRect.X + 32;
+        int contentW = modalRect.Width - 64;
+        int curY = modalRect.Y + 74;
+
+        string intro1 = "O LlamaNoir opera exclusivamente integrado ao modelo de Inteligência Artificial local (Qwen 2.5 3B via Mozilla Llamafile). " +
+                        "Isso garante interrogatórios policiais 100% dinâmicos, com depoimentos imprevisíveis e contradições orgânicas formuladas pelo suspeito.";
+        string wrappedIntro1 = WrapText(fontBody, intro1, contentW);
+        _spriteBatch.DrawString(fontBody, wrappedIntro1, new Vector2(contentX, curY), new Color(225, 235, 250));
+        curY += (int)fontBody.MeasureString(wrappedIntro1).Y + 10;
+
+        string intro2 = "🔒 100% Privado & Offline: Nenhum dado sai do seu computador. Todo o processamento ocorre no seu hardware via CPU ou GPU.";
+        _spriteBatch.DrawString(fontSmall, intro2, new Vector2(contentX, curY), new Color(52, 211, 153));
+        curY += 26;
+
+        // Caixa de Diagnóstico dos Arquivos
+        var diagRect = new Rectangle(contentX, curY, contentW, 60);
+        DrawPanel(diagRect, new Color(20, 26, 38, 240), new Color(42, 58, 86), 1);
+        _spriteBatch.DrawString(fontTiny, "DIAGNÓSTICO DA PASTA 'llamafile/':", new Vector2(diagRect.X + 14, diagRect.Y + 8), new Color(148, 163, 184));
+        _spriteBatch.DrawString(fontSmall, _aiSetupStatus, new Vector2(diagRect.X + 14, diagRect.Y + 28), new Color(250, 204, 21));
+        curY += 74;
+
+        if (_aiDownloader.IsDownloading)
+        {
+            var prog = _aiDownloader.CurrentProgress;
+
+            string stageTitle = $"[Etapa {prog.StepIndex}/{prog.TotalSteps}] {prog.StatusMessage}";
+            _spriteBatch.DrawString(fontTitle, stageTitle, new Vector2(contentX, curY), new Color(254, 240, 138));
+            curY += 28;
+
+            string fileInfo = $"Arquivo em transferência: {prog.CurrentFileName}";
+            _spriteBatch.DrawString(fontSmall, fileInfo, new Vector2(contentX, curY), new Color(186, 230, 253));
+            curY += 24;
+
+            int barW = contentW;
+            int barH = 30;
+            var barOuter = new Rectangle(contentX, curY, barW, barH);
+            DrawPanel(barOuter, new Color(15, 23, 42), new Color(56, 189, 248), 1);
+
+            int fillW = (int)(barW * (prog.Percentage / 100.0));
+            if (fillW > 0)
+            {
+                var barFill = new Rectangle(barOuter.X + 2, barOuter.Y + 2, Math.Max(2, fillW - 4), barH - 4);
+                DrawFilledRect(barFill, new Color(37, 99, 235));
+                DrawFilledRect(new Rectangle(barFill.X, barFill.Y, barFill.Width, 2), new Color(147, 197, 253, 180));
+            }
+
+            string mbDownloaded = (prog.BytesDownloaded / 1_048_576.0).ToString("F1");
+            string mbTotal = prog.TotalBytes > 0 ? (prog.TotalBytes / 1_048_576.0).ToString("F1") + " MB" : "Conectando...";
+            string speedMb = (prog.SpeedBytesPerSecond / 1_048_576.0).ToString("F1") + " MB/s";
+            string progText = $"{prog.Percentage:F1}% ({mbDownloaded} / {mbTotal}) • {speedMb}";
+            var progSize = fontSmall.MeasureString(progText);
+            float progTextX = barOuter.X + (barOuter.Width - progSize.X) / 2f;
+            float progTextY = barOuter.Y + (barOuter.Height - progSize.Y) / 2f;
+            _spriteBatch.DrawString(fontSmall, progText, new Vector2(progTextX, progTextY), Color.White);
+
+            curY += 44;
+
+            int cancelW = 240;
+            int cancelH = 42;
+            _btnCancelDownloadRect = new Rectangle(contentX + (contentW - cancelW) / 2, curY, cancelW, cancelH);
+            bool hoverCancel = _btnCancelDownloadRect.Contains(_virtualMousePos);
+            DrawPanel(_btnCancelDownloadRect,
+                hoverCancel ? new Color(185, 28, 28) : new Color(127, 29, 29),
+                hoverCancel ? new Color(248, 113, 113) : new Color(239, 68, 68), 1);
+            string cancelTxt = "[✕ CANCELAR DOWNLOAD]";
+            var cSize = fontSmall.MeasureString(cancelTxt);
+            float cTextX = _btnCancelDownloadRect.X + (_btnCancelDownloadRect.Width - cSize.X) / 2f;
+            float cTextY = _btnCancelDownloadRect.Y + (_btnCancelDownloadRect.Height - cSize.Y) / 2f;
+            _spriteBatch.DrawString(fontSmall, cancelTxt, new Vector2(cTextX, cTextY), Color.White);
+
+            _btnDownloadAiRect = Rectangle.Empty;
+            _btnOpenLlamaFolderRect = Rectangle.Empty;
+            _btnRecheckAiRect = Rectangle.Empty;
+        }
+        else
+        {
+            _btnCancelDownloadRect = Rectangle.Empty;
+
+            if (_aiDownloader.CurrentProgress.Phase == DownloadPhase.Error)
+            {
+                string err = $"⚠ {_aiDownloader.CurrentProgress.ErrorMessage}";
+                _spriteBatch.DrawString(fontSmall, err, new Vector2(contentX, curY), new Color(248, 113, 113));
+                curY += 24;
+            }
+            else if (_aiDownloader.CurrentProgress.Phase == DownloadPhase.Cancelled)
+            {
+                _spriteBatch.DrawString(fontSmall, "Download cancelado pelo detetive.", new Vector2(contentX, curY), new Color(250, 204, 21));
+                curY += 24;
+            }
+
+            int btn1H = 50;
+            _btnDownloadAiRect = new Rectangle(contentX, curY, contentW, btn1H);
+            bool hover1 = _btnDownloadAiRect.Contains(_virtualMousePos);
+            DrawPanel(_btnDownloadAiRect,
+                hover1 ? new Color(37, 99, 235) : new Color(29, 78, 216),
+                hover1 ? new Color(191, 219, 254) : new Color(147, 197, 253), 2);
+            DrawPixelFolder(_btnDownloadAiRect.X + 20, _btnDownloadAiRect.Y + (_btnDownloadAiRect.Height - 14) / 2, new Color(254, 240, 138));
+            string b1Text = "▶ [ 📥 BAIXAR AGENTE DE IA AUTOMATICAMENTE (~2.1 GB) ]";
+            var b1Size = fontLarge.MeasureString(b1Text);
+            float b1TextX = _btnDownloadAiRect.X + 46;
+            float b1TextY = _btnDownloadAiRect.Y + (_btnDownloadAiRect.Height - b1Size.Y) / 2f;
+            _spriteBatch.DrawString(fontLarge, b1Text, new Vector2(b1TextX, b1TextY), Color.White);
+
+            curY += btn1H + 12;
+
+            int btnSecW = (contentW - 12) / 2;
+            int btnSecH = 44;
+
+            _btnOpenLlamaFolderRect = new Rectangle(contentX, curY, btnSecW, btnSecH);
+            bool hover2 = _btnOpenLlamaFolderRect.Contains(_virtualMousePos);
+            DrawPanel(_btnOpenLlamaFolderRect,
+                hover2 ? new Color(30, 41, 59) : new Color(15, 23, 42),
+                hover2 ? new Color(148, 163, 184) : new Color(71, 85, 105), 1);
+            string b2Text = "📂 Abrir Pasta Local 'llamafile/'";
+            var b2Size = fontSmall.MeasureString(b2Text);
+            float b2TextX = _btnOpenLlamaFolderRect.X + (_btnOpenLlamaFolderRect.Width - b2Size.X) / 2f;
+            float b2TextY = _btnOpenLlamaFolderRect.Y + (_btnOpenLlamaFolderRect.Height - b2Size.Y) / 2f;
+            _spriteBatch.DrawString(fontSmall, b2Text, new Vector2(b2TextX, b2TextY), hover2 ? Color.White : new Color(203, 213, 225));
+
+            _btnRecheckAiRect = new Rectangle(contentX + btnSecW + 12, curY, btnSecW, btnSecH);
+            bool hover3 = _btnRecheckAiRect.Contains(_virtualMousePos);
+            DrawPanel(_btnRecheckAiRect,
+                hover3 ? new Color(30, 41, 59) : new Color(15, 23, 42),
+                hover3 ? new Color(52, 211, 153) : new Color(30, 80, 55), 1);
+            string b3Text = "🔄 Já copiei os arquivos (Reverificar)";
+            var b3Size = fontSmall.MeasureString(b3Text);
+            float b3TextX = _btnRecheckAiRect.X + (_btnRecheckAiRect.Width - b3Size.X) / 2f;
+            float b3TextY = _btnRecheckAiRect.Y + (_btnRecheckAiRect.Height - b3Size.Y) / 2f;
+            _spriteBatch.DrawString(fontSmall, b3Text, new Vector2(b3TextX, b3TextY), hover3 ? Color.White : new Color(187, 247, 208));
+        }
     }
 
     private void DrawTopBar(GameTime gameTime, ResponsiveLayout layout)
@@ -782,8 +1140,8 @@ public class InterrogationGame : Game
         }
 
         // Título da Delegacia e Departamento Noir integrado à barra de título
-        _spriteBatch.DrawString(fontTitle, "DELEGACIA CENTRAL 1947", new Vector2(68, 13), new Color(254, 240, 138));
-        _spriteBatch.DrawString(fontSub, "SALA DE INTERROGATÓRIO NOIR • DEPARTAMENTO DE HOMICÍDIOS", new Vector2(68, 38), new Color(186, 230, 253));
+        _spriteBatch.DrawString(fontTitle, "LLAMANOIR", new Vector2(68, 13), new Color(254, 240, 138));
+        _spriteBatch.DrawString(fontSub, "SALA DE INTERROGATÓRIO POLICIAL • DEPARTAMENTO DE HOMICÍDIOS 1947", new Vector2(68, 38), new Color(186, 230, 253));
 
         // --- CONTROLES DE JANELA INTEGRADOS (Canto Superior Direito) ---
         // Botão Fechar [X]

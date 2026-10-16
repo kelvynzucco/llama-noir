@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using LlamaInterrogation.Models;
+using LlamaNoir.Models;
 
-namespace LlamaInterrogation.Services;
+namespace LlamaNoir.Services;
 
 /// <summary>
 /// Simulador local caso o llamafile esteja desligado.
