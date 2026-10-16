@@ -2,10 +2,11 @@
 bin/
 obj/
 
-# Logs temporários de execução
+# Logs e scripts locais
 *.log
 llama.log
 main.log
+*.bat
 
 # Modelos de Inteligência Artificial e Executáveis Pesados (>100MB)
 # (Estes arquivos NÃO devem ser enviados ao GitHub)

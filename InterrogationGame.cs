@@ -26,7 +26,6 @@ public class InterrogationGame : Game
     private readonly InterrogationState _state = new();
     private readonly MockLlmTurnProvider _mockProvider = new();
     private readonly LlamafileTurnProvider _llamafileProvider = new("http://127.0.0.1:8080");
-    private bool _useLlamafile = true; // Ativo por padrão com Qwen 2.5 3B Abliterated!
 
     private bool _isWaitingForLlm = false;
     private bool _isGeneratingCase = false;
@@ -67,7 +66,6 @@ public class InterrogationGame : Game
     private double _cursorBlinkTimer = 0;
 
     // Regiões clicáveis da UI e estado de pistas anexadas
-    private Rectangle _toggleProviderRect;
     private Rectangle _toggleViewModeRect;
     private Rectangle _newCaseButtonRect;
     private Rectangle _dialogueRestartRect;
@@ -160,9 +158,6 @@ public class InterrogationGame : Game
         var mouse = Mouse.GetState();
 
         // Atalhos de função
-        if (keyboard.IsKeyDown(Keys.F2) && !_prevKeyboard.IsKeyDown(Keys.F2))
-            ToggleProvider();
-
         if (keyboard.IsKeyDown(Keys.F3) && !_prevKeyboard.IsKeyDown(Keys.F3))
             _focusCurrentTurnOnly = !_focusCurrentTurnOnly;
 
@@ -222,11 +217,7 @@ public class InterrogationGame : Game
 
             Point mp = mouse.Position;
 
-            if (_toggleProviderRect.Contains(mp))
-            {
-                ToggleProvider();
-            }
-            else if (_toggleViewModeRect.Contains(mp))
+            if (_toggleViewModeRect.Contains(mp))
             {
                 _focusCurrentTurnOnly = !_focusCurrentTurnOnly;
                 _autoScrollToBottom = true;
@@ -274,14 +265,6 @@ public class InterrogationGame : Game
         base.Update(gameTime);
     }
 
-    private void ToggleProvider()
-    {
-        _useLlamafile = !_useLlamafile;
-        _statusBanner = _useLlamafile
-            ? "🎙️ Gravador de Fita Magnetofônica ATIVO (Escuta dinâmica conectada)."
-            : "📋 Registro por Taquigrafia Policial ATIVO (Arquivo interno clássico).";
-    }
-
     private async Task GenerateNewProceduralCaseAsync()
     {
         if (_isWaitingForLlm || _isGeneratingCase)
@@ -291,12 +274,11 @@ public class InterrogationGame : Game
         _selectedClue = null;
         _pendingPlayerAction = string.Empty;
 
-        ILlmTurnProvider activeProvider = _useLlamafile ? _llamafileProvider : _mockProvider;
         _statusBanner = "Abrindo arquivos da delegacia... Convocando suspeito para interrogatório...";
 
         try
         {
-            var generatedCase = await activeProvider.GenerateNewCaseAsync();
+            var generatedCase = await _llamafileProvider.GenerateNewCaseAsync();
             _state.ApplyGeneratedCase(generatedCase);
             _statusBanner = $"Inquérito Aberto: {_state.CaseTitle} • Suspeito: {_state.NpcName}";
         }
@@ -375,7 +357,6 @@ public class InterrogationGame : Game
         });
         _autoScrollToBottom = true;
 
-        ILlmTurnProvider activeProvider = _useLlamafile ? _llamafileProvider : _mockProvider;
         string synStatus = synergy switch
         {
             ClueSynergyType.Positive => " (★ Prova Pericial Compatível!)",
@@ -582,11 +563,17 @@ public class InterrogationGame : Game
         DrawPixelBadge(18, 16, new Color(250, 204, 21));
 
         string rawTitle = _isGeneratingCase ? "ABRINDO NOVO INQUÉRITO FORENSE..." : _state.CaseTitle;
-        string titleDisplay = TruncateText(fontTitle, rawTitle, 610);
-        _spriteBatch.DrawString(fontTitle, titleDisplay, new Vector2(40, 12), new Color(240, 244, 255));
+        var fTitle = fontTitle.MeasureString(rawTitle).X <= 750 ? fontTitle : _fontSystem.GetFont(18);
+        string titleDisplay = TruncateText(fTitle, rawTitle, 750);
+        _spriteBatch.DrawString(fTitle, titleDisplay, new Vector2(40, 13), new Color(240, 244, 255));
+
+        // Indicador de Gravação Forense Contínua (Sem alternância, sempre gravando o interrogatório)
+        int recX = WindowWidth - 530;
+        DrawPixelTapeRecorder(recX, 16, gameTime, true);
+        _spriteBatch.DrawString(fontSub, "GRAVAÇÃO FORENSE", new Vector2(recX + 28, 15), new Color(156, 175, 205));
 
         // Botão de Modo de Visualização (Cena Atual vs Histórico Completo)
-        _toggleViewModeRect = new Rectangle(666, 6, 198, 36);
+        _toggleViewModeRect = new Rectangle(WindowWidth - 340, 6, 160, 36);
         bool hoverView = _toggleViewModeRect.Contains(_prevMouse.Position);
         DrawPanel(_toggleViewModeRect,
             hoverView ? new Color(45, 58, 82) : new Color(30, 38, 56),
@@ -595,94 +582,69 @@ public class InterrogationGame : Game
         string viewText = _focusCurrentTurnOnly ? "[F3] Turno Atual" : "[F3] Arquivo Geral";
         _spriteBatch.DrawString(fontSub, viewText, new Vector2(_toggleViewModeRect.X + 28, _toggleViewModeRect.Y + 8), Color.White);
 
-        // Botão de alternância Gravador de Fita <-> Taquigrafia
-        _toggleProviderRect = new Rectangle(872, 6, 290, 36);
-        bool hoverToggle = _toggleProviderRect.Contains(_prevMouse.Position);
-        Color toggleBg = _useLlamafile
-            ? (hoverToggle ? new Color(36, 98, 72) : new Color(26, 78, 56))
-            : (hoverToggle ? new Color(52, 62, 85) : new Color(38, 46, 65));
-        Color toggleBorder = _useLlamafile ? new Color(80, 210, 150) : new Color(95, 110, 145);
-        DrawPanel(_toggleProviderRect, toggleBg, toggleBorder, 1);
-
-        DrawPixelTapeRecorder(_toggleProviderRect.X + 8, _toggleProviderRect.Y + 10, gameTime, _useLlamafile);
-        string modeLabel = _useLlamafile
-            ? "[F2] GRAVADOR: FITA MAGNÉTICA"
-            : "[F2] GRAVADOR: TAQUIGRAFIA";
-        _spriteBatch.DrawString(fontSub, modeLabel, new Vector2(_toggleProviderRect.X + 36, _toggleProviderRect.Y + 8), Color.White);
-
         // Botão de Gerar Novo Inquérito Policial
-        _newCaseButtonRect = new Rectangle(1170, 6, 174, 36);
+        _newCaseButtonRect = new Rectangle(WindowWidth - 170, 6, 154, 36);
         bool hoverReset = _newCaseButtonRect.Contains(_prevMouse.Position);
         DrawPanel(_newCaseButtonRect,
             _isGeneratingCase ? new Color(75, 60, 24) : (hoverReset ? new Color(98, 48, 120) : new Color(68, 34, 88)),
             new Color(192, 132, 252), 1);
         DrawPixelFolder(_newCaseButtonRect.X + 8, _newCaseButtonRect.Y + 12, new Color(250, 204, 21));
-        string newCaseLabel = _isGeneratingCase ? "Buscando Arquivo..." : "[F5] NOVO INQUÉRITO";
+        string newCaseLabel = _isGeneratingCase ? "Buscando Arquivo..." : "[F5] NOVO CASO";
         _spriteBatch.DrawString(fontSub, newCaseLabel, new Vector2(_newCaseButtonRect.X + 30, _newCaseButtonRect.Y + 8), new Color(245, 230, 255));
 
         // 2. BARRA DE CONTEXTO NOIR + OBJETIVO EM DESTAQUE ABAIXO DO HEADER (Centralizada e sem cortar o texto)
-        var objBannerRect = new Rectangle(16, 50, WindowWidth - 32, 46);
-        DrawPanel(objBannerRect, new Color(34, 28, 15), new Color(250, 204, 21), 2);
-        DrawFilledRect(new Rectangle(objBannerRect.X, objBannerRect.Y, 6, objBannerRect.Height), new Color(250, 204, 21));
-        DrawFilledRect(new Rectangle(objBannerRect.Right - 6, objBannerRect.Y, 6, objBannerRect.Height), new Color(250, 204, 21));
+        // 2. BARRA DE CONTEXTO NOIR + OBJETIVO EM DESTAQUE ABAIXO DO HEADER (Sem cortar textos)
+        var objBannerRect = new Rectangle(16, 52, WindowWidth - 32, 48);
+        DrawPanel(objBannerRect, new Color(30, 24, 14), new Color(234, 179, 8), 2);
+        DrawFilledRect(new Rectangle(objBannerRect.X, objBannerRect.Y, 5, objBannerRect.Height), new Color(250, 204, 21));
+        DrawFilledRect(new Rectangle(objBannerRect.Right - 5, objBannerRect.Y, 5, objBannerRect.Height), new Color(250, 204, 21));
 
-        string rawObj = _isGeneratingCase ? "Encontrando novo caso..." : _state.CaseObjective;
-        float maxObjWidth = objBannerRect.Width - 36f;
+        string rawObj = _isGeneratingCase ? "Abrindo novos arquivos da delegacia..." : _state.CaseObjective;
+        float maxObjWidth = objBannerRect.Width - 32f;
 
         if (_isGeneratingCase || !rawObj.Contains('\n'))
         {
-            if (fontObj.MeasureString(rawObj).X <= maxObjWidth)
-            {
-                var sz = fontObj.MeasureString(rawObj);
-                float ox = objBannerRect.X + (objBannerRect.Width - sz.X) / 2f;
-                float oy = objBannerRect.Y + (objBannerRect.Height - sz.Y) / 2f;
-                _spriteBatch.DrawString(fontObj, rawObj, new Vector2(ox, oy), new Color(254, 240, 138));
-            }
-            else
-            {
-                string wrappedObj = WrapText(fontSub, rawObj, maxObjWidth);
-                string[] lines = wrappedObj.Split('\n');
-                int lineHeight = 19;
-                int totalH = lines.Length * lineHeight;
-                int startY = objBannerRect.Y + (objBannerRect.Height - totalH) / 2;
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    var lsz = fontSub.MeasureString(lines[i]);
-                    float lx = objBannerRect.X + (objBannerRect.Width - lsz.X) / 2f;
-                    _spriteBatch.DrawString(fontSub, lines[i], new Vector2(lx, startY + i * lineHeight), new Color(254, 240, 138));
-                }
-            }
+            var fontClean = fontObj.MeasureString(rawObj).X <= maxObjWidth ? fontObj : _fontSystem.GetFont(14);
+            var sz = fontClean.MeasureString(rawObj);
+            float ox = objBannerRect.X + Math.Max(12, (objBannerRect.Width - sz.X) / 2f);
+            float oy = objBannerRect.Y + (objBannerRect.Height - sz.Y) / 2f;
+            _spriteBatch.DrawString(fontClean, rawObj, new Vector2(ox, oy), new Color(254, 240, 138));
         }
         else
         {
-            // Exibe Linha 1 (CONTEXTO do crime Noir) + Linha 2 (OBJETIVO em destaque dourado) centralizadas
+            // Exibe Linha 1 (CONTEXTO do crime Noir) + Linha 2 (OBJETIVO em destaque dourado) sem cortes
             string[] parts = rawObj.Split('\n', 2, StringSplitOptions.RemoveEmptyEntries);
-            string contextLine = TruncateText(fontSub, parts[0].Trim(), maxObjWidth);
-            string objectiveLine = parts.Length > 1 ? TruncateText(fontObj, parts[1].Trim(), maxObjWidth) : string.Empty;
+            string contextLine = parts[0].Trim();
+            string objectiveLine = parts.Length > 1 ? parts[1].Trim() : string.Empty;
 
-            var ctxSize = fontSub.MeasureString(contextLine);
-            float ctxX = objBannerRect.X + (objBannerRect.Width - ctxSize.X) / 2f;
-            _spriteBatch.DrawString(fontSub, contextLine, new Vector2(ctxX, objBannerRect.Y + 5), new Color(226, 232, 240));
+            var fontCtx = fontSub.MeasureString(contextLine).X <= maxObjWidth ? fontSub : _fontSystem.GetFont(13);
+            var fontGoal = fontObj.MeasureString(objectiveLine).X <= maxObjWidth ? fontObj : _fontSystem.GetFont(14);
+
+            var ctxSize = fontCtx.MeasureString(contextLine);
+            float ctxX = objBannerRect.X + Math.Max(12, (objBannerRect.Width - ctxSize.X) / 2f);
+            _spriteBatch.DrawString(fontCtx, contextLine, new Vector2(ctxX, objBannerRect.Y + 6), new Color(226, 232, 240));
 
             if (!string.IsNullOrEmpty(objectiveLine))
             {
-                var objSize = fontObj.MeasureString(objectiveLine);
-                float objX = objBannerRect.X + (objBannerRect.Width - objSize.X) / 2f;
-                _spriteBatch.DrawString(fontObj, objectiveLine, new Vector2(objX, objBannerRect.Y + 23), new Color(250, 204, 21));
+                var objSize = fontGoal.MeasureString(objectiveLine);
+                float objX = objBannerRect.X + Math.Max(12, (objBannerRect.Width - objSize.X) / 2f);
+                _spriteBatch.DrawString(fontGoal, objectiveLine, new Vector2(objX, objBannerRect.Y + 26), new Color(250, 204, 21));
             }
         }
     }
 
     private void DrawLeftSuspectAndCluesPanel(GameTime gameTime)
     {
-        var fontHeader = _fontSystem.GetFont(21);
-        var fontBody = _fontSystem.GetFont(17);
-        var fontSmall = _fontSystem.GetFont(15);
+        var fontHeader = _fontSystem.GetFont(20);
+        var fontBody = _fontSystem.GetFont(16);
+        var fontSmall = _fontSystem.GetFont(14);
+        var fontTiny = _fontSystem.GetFont(13);
 
-        var suspectPanel = new Rectangle(16, 100, 444, 404);
+        // Painel do Suspeito (X=16, Y=106, Largura=440, Altura=400)
+        var suspectPanel = new Rectangle(16, 106, 440, 400);
         DrawPanel(suspectPanel, new Color(20, 24, 34), new Color(46, 56, 78), 1);
 
-        var portraitRect = new Rectangle(32, 114, 154, 164);
+        var portraitRect = new Rectangle(30, 120, 148, 156);
         if (_isGeneratingCase)
         {
             DrawPanel(portraitRect, new Color(14, 18, 26), new Color(96, 165, 250), 2);
@@ -694,67 +656,90 @@ public class InterrogationGame : Game
             DrawCornerPhotoMounts(portraitRect, new Color(85, 95, 115));
         }
 
-        int infoX = 200;
+        int infoX = 192;
+        int infoWidth = suspectPanel.Right - infoX - 14; // ~234px
         string displayNpcName = _isGeneratingCase ? "Identificando..." : _state.NpcName;
-        string displayNpcRole = _isGeneratingCase ? "Encontrando novo caso..." : _state.NpcRole;
+        string displayNpcRole = _isGeneratingCase ? "Buscando antecedentes..." : _state.NpcRole;
 
-        string nameStr = TruncateText(fontHeader, displayNpcName, 244);
-        _spriteBatch.DrawString(fontHeader, nameStr, new Vector2(infoX, 112), new Color(240, 244, 255));
-        string wrappedRole = WrapText(fontSmall, displayNpcRole, 244);
-        _spriteBatch.DrawString(fontSmall, wrappedRole, new Vector2(infoX, 138), new Color(165, 180, 210));
+        // Nome do suspeito com ajuste inteligente de fonte
+        var fontName = fontHeader.MeasureString(displayNpcName).X <= infoWidth ? fontHeader : _fontSystem.GetFont(16);
+        _spriteBatch.DrawString(fontName, displayNpcName, new Vector2(infoX, 118), new Color(240, 244, 255));
 
+        // Profissão / Papel do suspeito com auto-ajuste de linha
+        var fontRole = fontTiny;
+        string wrappedRole = WrapText(fontRole, displayNpcRole, infoWidth);
+        if (fontRole.MeasureString(wrappedRole).Y > 30)
+        {
+            fontRole = _fontSystem.GetFont(11.5f);
+            wrappedRole = WrapText(fontRole, displayNpcRole, infoWidth);
+        }
+        _spriteBatch.DrawString(fontRole, wrappedRole, new Vector2(infoX, 142), new Color(165, 180, 210));
+
+        // Postura Emocional
         Color emotionColor = GetEmotionColor(_state.Emotion);
-        var emotionBox = new Rectangle(infoX, 184, 204, 34);
+        var emotionBox = new Rectangle(infoX, 176, 192, 28);
         DrawPanel(emotionBox, emotionColor * 0.22f, emotionColor, 1);
-        _spriteBatch.DrawString(fontBody, $"Postura: {_state.Emotion.ToString().ToUpperInvariant()}",
-            new Vector2(emotionBox.X + 12, emotionBox.Y + 6), emotionColor);
+        _spriteBatch.DrawString(fontSmall, $"Postura: {_state.Emotion.ToString().ToUpperInvariant()}",
+            new Vector2(emotionBox.X + 8, emotionBox.Y + 5), emotionColor);
 
         // Cinzeiro com cigarro e fumaça animada na sala de interrogatório
-        DrawPixelCigaretteSmoke(infoX + 214, 192, gameTime);
+        DrawPixelCigaretteSmoke(infoX + 204, 184, gameTime);
 
+        // Polígrafo Forense
         int bpm = 68 + (int)(_displayStress * 0.72f);
-        _spriteBatch.DrawString(fontSmall, $"Polígrafo Forense: {bpm} BPM",
-            new Vector2(infoX, 226), bpm > 115 ? new Color(255, 110, 110) : new Color(130, 210, 175));
-        DrawPolygraphOscilloscope(new Rectangle(infoX, 248, 244, 26), gameTime, bpm, bpm > 115 ? new Color(244, 63, 94) : new Color(52, 211, 153));
+        _spriteBatch.DrawString(fontTiny, $"Polígrafo Forense: {bpm} BPM",
+            new Vector2(infoX, 212), bpm > 115 ? new Color(255, 110, 110) : new Color(130, 210, 175));
+        DrawPolygraphOscilloscope(new Rectangle(infoX, 230, infoWidth, 26), gameTime, bpm, bpm > 115 ? new Color(244, 63, 94) : new Color(52, 211, 153));
 
-        int meterY = 286;
-        DrawMeterBar(new Rectangle(32, meterY, 412, 64),
+        // Medidores Psicológicos & Investigativos (Espaçamento padronizado de 68px, sem sobreposição)
+        int meterY = 274;
+        int meterWidth = suspectPanel.Width - 28;
+        int meterX = suspectPanel.X + 14;
+
+        DrawMeterBar(new Rectangle(meterX, meterY, meterWidth, 52),
             "CONFIANÇA DO SUSPEITO",
             $"{_state.Trust}%",
             _displayTrust / 100f,
             new Color(56, 189, 248),
             "Sobe com empatia e acordos. Evite hostilidade sem provas.");
 
-        DrawMeterBar(new Rectangle(32, meterY + 68, 412, 64),
+        DrawMeterBar(new Rectangle(meterX, meterY + 68, meterWidth, 52),
             "PRESSÃO PSICOLÓGICA (LIMITE: 100%)",
             $"{_state.Stress}%",
             _displayStress / 100f,
             _state.Stress >= 75 ? new Color(244, 63, 94) : new Color(245, 158, 11),
             "Em 100%, o suspeito cala-se ou sofre colapso emocional.");
 
-        DrawMeterBar(new Rectangle(32, meterY + 136, 412, 64),
+        DrawMeterBar(new Rectangle(meterX, meterY + 136, meterWidth, 52),
             "PROGRESSO DO INQUÉRITO (META: 100%)",
             $"{_state.CaseProgress}%",
             _displayProgress / 100f,
             new Color(52, 211, 153),
             "Ao atingir 100%, a verdade factual é totalmente elucidada.");
 
-        var cluesPanel = new Rectangle(16, 512, 444, 292);
+        // Dossiê de Evidências Forenses (X=16, Y=514, Largura=440, Altura=292)
+        var cluesPanel = new Rectangle(16, 514, 440, 292);
         DrawPanel(cluesPanel, new Color(20, 24, 34), new Color(46, 56, 78), 1);
-        DrawPixelFolder(32, 524, new Color(250, 204, 21));
-        _spriteBatch.DrawString(fontHeader, "DOSSIÊ DE EVIDÊNCIAS FORENSES", new Vector2(54, 520), new Color(250, 204, 21));
+        DrawPixelFolder(30, 526, new Color(250, 204, 21));
+        _spriteBatch.DrawString(fontBody, "DOSSIÊ DE EVIDÊNCIAS FORENSES", new Vector2(52, 522), new Color(250, 204, 21));
+        _spriteBatch.DrawString(fontTiny, "Clique em uma evidência para anexá-la ao seu próximo confronto:", new Vector2(30, 544), new Color(145, 165, 195));
 
         _clueRects.Clear();
         if (_isGeneratingCase)
         {
-            _spriteBatch.DrawString(fontBody, "Abrindo arquivos confidenciais...", new Vector2(32, 560), new Color(168, 180, 205));
+            _spriteBatch.DrawString(fontBody, "Abrindo arquivos confidenciais...", new Vector2(32, 574), new Color(168, 180, 205));
         }
         else
         {
-            int clueY = 552;
-            foreach (var clue in _state.Clues.Take(4))
+            var visibleClues = _state.Clues.Take(4).ToList();
+            int clueCount = visibleClues.Count;
+            int cardH = clueCount <= 3 ? 66 : 54;
+            int gap = clueCount <= 3 ? 8 : 5;
+            int clueY = 564;
+
+            foreach (var clue in visibleClues)
             {
-                var cardRect = new Rectangle(30, clueY, 416, 56);
+                var cardRect = new Rectangle(28, clueY, cluesPanel.Width - 24, cardH);
                 bool hovered = cardRect.Contains(_prevMouse.Position);
                 bool isSelected = ReferenceEquals(clue, _selectedClue);
 
@@ -781,40 +766,37 @@ public class InterrogationGame : Game
 
                 DrawPanel(cardRect, cardBg, cardBorder, borderThickness);
 
-                string titleText;
-                Color titleColor;
-                if (isSelected)
+                string actionLabel = isSelected ? "[Soltar]" : (hovered ? "[Anexar]" : "");
+                int actWidth = 0;
+                if (!string.IsNullOrEmpty(actionLabel))
                 {
-                    titleText = $"[✓ ANEXADA AO DIÁLOGO] {clue.Title}";
-                    titleColor = new Color(254, 240, 138);
-                }
-                else if (clue.IsNew)
-                {
-                    titleText = $"★ [NOVA EVIDÊNCIA] {clue.Title}";
-                    titleColor = new Color(254, 240, 138);
-                }
-                else
-                {
-                    titleText = $"• {clue.Title}";
-                    titleColor = new Color(225, 235, 252);
+                    Color actionCol = isSelected ? new Color(250, 204, 21) : new Color(147, 197, 253);
+                    var actSz = fontTiny.MeasureString(actionLabel);
+                    actWidth = (int)actSz.X + 8;
+                    _spriteBatch.DrawString(fontTiny, actionLabel, new Vector2(cardRect.Right - actSz.X - 10, cardRect.Y + 4), actionCol);
                 }
 
-                _spriteBatch.DrawString(fontBody, TruncateText(fontBody, titleText, 290), new Vector2(cardRect.X + 12, cardRect.Y + 5), titleColor);
+                string titleText = isSelected
+                    ? $"[✓ ANEXADA] {clue.Title}"
+                    : (clue.IsNew ? $"★ [NOVA] {clue.Title}" : $"• {clue.Title}");
+                Color titleColor = isSelected ? new Color(254, 240, 138) : (clue.IsNew ? new Color(254, 240, 138) : new Color(225, 235, 252));
 
-                if (isSelected)
-                {
-                    _spriteBatch.DrawString(fontSmall, "[Clique p/ soltar]", new Vector2(cardRect.Right - 120, cardRect.Y + 8), new Color(250, 204, 21));
-                }
-                else if (hovered)
-                {
-                    _spriteBatch.DrawString(fontSmall, "[Clique p/ anexar]", new Vector2(cardRect.Right - 120, cardRect.Y + 8), new Color(147, 197, 253));
-                }
+                int maxTitleWidth = cardRect.Width - actWidth - 20;
+                string safeTitle = TruncateText(fontSmall, titleText, maxTitleWidth);
+                _spriteBatch.DrawString(fontSmall, safeTitle, new Vector2(cardRect.X + 10, cardRect.Y + 3), titleColor);
 
-                string shortDesc = TruncateText(fontSmall, clue.Description, 392);
-                _spriteBatch.DrawString(fontSmall, shortDesc, new Vector2(cardRect.X + 12, cardRect.Y + 30), new Color(168, 180, 205));
+                // Descrição com ajuste dinâmico para nunca cortar
+                var fDesc = fontTiny;
+                string wrappedDesc = WrapText(fDesc, clue.Description, cardRect.Width - 20);
+                if (fDesc.MeasureString(wrappedDesc).Y > cardH - 22)
+                {
+                    fDesc = _fontSystem.GetFont(11.5f);
+                    wrappedDesc = WrapText(fDesc, clue.Description, cardRect.Width - 20);
+                }
+                _spriteBatch.DrawString(fDesc, wrappedDesc, new Vector2(cardRect.X + 10, cardRect.Y + 20), new Color(175, 190, 215));
 
                 _clueRects.Add((cardRect, clue));
-                clueY += 60;
+                clueY += cardH + gap;
             }
         }
     }
@@ -826,32 +808,32 @@ public class InterrogationGame : Game
         var fontBody = _fontSystem.GetFont(18);
         var fontSmall = _fontSystem.GetFont(15);
 
-        int rightX = 474;
+        int rightX = 472;
         int rightWidth = WindowWidth - rightX - 16;
 
         // 1. BARRA VISUAL DE LINHA DO TEMPO DE TURNOS
-        var timelineRect = new Rectangle(rightX, 100, rightWidth, 60);
+        var timelineRect = new Rectangle(rightX, 106, rightWidth, 58);
         DrawTurnTimelineBar(timelineRect, fontTitle, fontSmall);
 
         // 2. PALCO DE DIÁLOGO E NARRATIVA
-        var stagePanel = new Rectangle(rightX, 166, rightWidth, 412);
+        var stagePanel = new Rectangle(rightX, 170, rightWidth, 378);
         DrawPanel(stagePanel, new Color(17, 21, 30), new Color(46, 56, 78), 1);
 
         if (_isGeneratingCase)
         {
             int dots = ((int)(gameTime.TotalGameTime.TotalSeconds * 3) % 3) + 1;
             string dotsStr = new('.', dots);
-            var genBox = new Rectangle(stagePanel.X + 60, stagePanel.Y + 80, stagePanel.Width - 120, 240);
+            var genBox = new Rectangle(stagePanel.X + 60, stagePanel.Y + 70, stagePanel.Width - 120, 230);
             DrawPanel(genBox, new Color(24, 30, 46), new Color(250, 204, 21), 2);
 
             // Desenha a Lupa Animada no centro superior do card
-            DrawAnimatedMagnifyingGlass(genBox.Center.X, genBox.Y + 92, 34, gameTime);
+            DrawAnimatedMagnifyingGlass(genBox.Center.X, genBox.Y + 86, 34, gameTime);
 
             var fontSearch = _fontSystem.GetFont(24);
             string searchTitle = $"Abrindo arquivos confidenciais{dotsStr}";
             var stSize = fontSearch.MeasureString(searchTitle);
             _spriteBatch.DrawString(fontSearch, searchTitle,
-                new Vector2(genBox.X + (genBox.Width - stSize.X) / 2f, genBox.Y + 172),
+                new Vector2(genBox.X + (genBox.Width - stSize.X) / 2f, genBox.Y + 164),
                 new Color(254, 240, 138));
         }
         else
@@ -957,8 +939,8 @@ public class InterrogationGame : Game
         _dialogueOptionRects.Clear();
         var activeOptions = _state.GetActiveDialogueOptions(4);
 
-        int optionsAreaY = 582;
-        int optionsAreaHeight = 224;
+        int optionsAreaY = 556;
+        int optionsAreaHeight = 250;
 
         if (_state.Outcome != GameOutcome.EmAndamento)
         {
@@ -991,9 +973,12 @@ public class InterrogationGame : Game
 
             // Carimbo retrô de inquérito criminal no topo
             DrawRetroStamp(new Rectangle(endPanelRect.X + 24, endPanelRect.Y + 14, endPanelRect.Width - 48, 36), endTitle, endBorder, fontTitle);
-            _spriteBatch.DrawString(fontBody, endSub, new Vector2(endPanelRect.X + 24, endPanelRect.Y + 58), Color.White);
 
-            var restartBtnRect = new Rectangle(endPanelRect.X + 24, endPanelRect.Y + 116, 560, 48);
+            // Subtítulo descritivo com quebra automática de texto para nunca cortar
+            string wrappedEndSub = WrapText(fontBody, endSub, endPanelRect.Width - 48);
+            _spriteBatch.DrawString(fontBody, wrappedEndSub, new Vector2(endPanelRect.X + 24, endPanelRect.Y + 58), Color.White);
+
+            var restartBtnRect = new Rectangle(endPanelRect.X + 24, endPanelRect.Y + 148, endPanelRect.Width - 48, 48);
             bool hoverRestart = restartBtnRect.Contains(_prevMouse.Position);
             DrawPanel(restartBtnRect, hoverRestart ? new Color(37, 99, 235) : new Color(29, 78, 216), new Color(147, 197, 253), 2);
             DrawPixelFolder(restartBtnRect.X + 16, restartBtnRect.Y + 16, new Color(254, 240, 138));
@@ -1008,8 +993,9 @@ public class InterrogationGame : Game
             {
                 string headerLeft = _isWaitingForLlm
                     ? "O silêncio pesa na sala... O suspeito mede cada palavra..."
-                    : "INTERROGAR SUSPEITO [Pressione 1-4 ou clique na linha de diálogo]:";
-                _spriteBatch.DrawString(fontSmall, headerLeft, new Vector2(rightX + 4, optionsAreaY), new Color(165, 185, 225));
+                    : "INTERROGAR SUSPEITO [1-4]:";
+                _spriteBatch.DrawString(fontSmall, headerLeft, new Vector2(rightX + 4, optionsAreaY + 1), new Color(165, 185, 225));
+                var headerLeftSize = fontSmall.MeasureString(headerLeft);
 
                 string clearText = "[✕ DESANEXAR]";
                 var clearBtnSize = fontSmall.MeasureString(clearText);
@@ -1019,11 +1005,12 @@ public class InterrogationGame : Game
                 _spriteBatch.DrawString(fontSmall, clearText, new Vector2(_clearClueButtonRect.X + 7, _clearClueButtonRect.Y + 2), Color.White);
 
                 string clueBanner = $"📂 PROVA ANEXADA: {_selectedClue.Title}";
-                int maxBannerW = _clearClueButtonRect.X - (rightX + 380) - 10;
-                if (maxBannerW > 100)
+                int bannerStartX = rightX + (int)headerLeftSize.X + 16;
+                int maxBannerW = _clearClueButtonRect.Left - bannerStartX - 16;
+                if (maxBannerW > 60)
                 {
                     _spriteBatch.DrawString(fontSmall, TruncateText(fontSmall, clueBanner, maxBannerW),
-                        new Vector2(rightX + 380, optionsAreaY), new Color(250, 204, 21));
+                        new Vector2(bannerStartX, optionsAreaY + 1), new Color(250, 204, 21));
                 }
             }
             else
@@ -1033,11 +1020,11 @@ public class InterrogationGame : Game
                     ? "O silêncio pesa na sala... O suspeito mede cada palavra..."
                     : "INTERROGAR SUSPEITO [Escolha uma linha de inquirição ou pressione 1, 2, 3, 4]:";
                 Color headerColor = _isWaitingForLlm ? new Color(250, 204, 21) : new Color(165, 185, 225);
-                _spriteBatch.DrawString(fontSmall, headerText, new Vector2(rightX + 4, optionsAreaY), headerColor);
+                _spriteBatch.DrawString(fontSmall, headerText, new Vector2(rightX + 4, optionsAreaY + 1), headerColor);
             }
 
-            int startCardY = optionsAreaY + 22;
-            int cardHeight = 42;
+            int startCardY = optionsAreaY + 24;
+            int cardHeight = 47;
             int cardGap = 5;
 
             for (int i = 0; i < activeOptions.Count; i++)
@@ -1088,44 +1075,53 @@ public class InterrogationGame : Game
                 };
                 string badge = $"[{i + 1}] {categoryIcon} {opt.Tag}";
                 var badgeSize = fontSmall.MeasureString(badge);
-                var badgeRect = new Rectangle(cardRect.X + 8, cardRect.Y + 7, (int)badgeSize.X + 16, 26);
+                var badgeRect = new Rectangle(cardRect.X + 8, cardRect.Y + 9, (int)badgeSize.X + 16, 28);
                 DrawPanel(badgeRect, tagColor * 0.18f, tagColor * 0.7f, 1);
-                _spriteBatch.DrawString(fontSmall, badge, new Vector2(badgeRect.X + 8, badgeRect.Y + 3), tagColor);
+                _spriteBatch.DrawString(fontSmall, badge, new Vector2(badgeRect.X + 8, badgeRect.Y + 4), tagColor);
 
                 // Badge de Sinergia da Pista Anexada (se houver)
                 int maxTextRight = cardRect.Right - 16;
                 if (_selectedClue != null)
                 {
                     bool isCompatible = opt.IsClueCompatible(_selectedClue);
-                    string synBadge = isCompatible ? "★ PROVA CONTUNDENTE (+)" : "⚠ EVIDÊNCIA DESCONEXA (-)";
+                    string synBadge = isCompatible ? "★ CONTUNDENTE (+)" : "⚠ DESCONEXA (-)";
                     Color synColor = isCompatible ? new Color(52, 211, 153) : new Color(248, 113, 113);
                     Color synBg = isCompatible ? new Color(20, 50, 35) : new Color(50, 20, 25);
 
                     var synSize = fontSmall.MeasureString(synBadge);
-                    var synRect = new Rectangle(cardRect.Right - (int)synSize.X - 18, cardRect.Y + 7, (int)synSize.X + 12, 26);
+                    var synRect = new Rectangle(cardRect.Right - (int)synSize.X - 16, cardRect.Y + 9, (int)synSize.X + 12, 28);
                     DrawPanel(synRect, synBg, synColor, 1);
-                    _spriteBatch.DrawString(fontSmall, synBadge, new Vector2(synRect.X + 6, synRect.Y + 3), synColor);
+                    _spriteBatch.DrawString(fontSmall, synBadge, new Vector2(synRect.X + 6, synRect.Y + 4), synColor);
 
                     maxTextRight = synRect.Left - 12;
                 }
 
-                // Texto da Fala do Detetive (em formato de diálogo)
+                // Fala do Detetive com dimensionamento adaptativo para nunca cortar
                 string dialogueText = $"\"{opt.PlayerDialogue}\"";
                 int textStartX = badgeRect.Right + 12;
                 int maxTextWidth = maxTextRight - textStartX;
-                string wrappedOpt = WrapText(fontBody, dialogueText, maxTextWidth);
 
-                var optTextSize = fontBody.MeasureString(wrappedOpt);
-                float textY = cardRect.Y + Math.Max(3, (cardRect.Height - optTextSize.Y) / 2f);
+                var fontOpt = fontSmall;
+                string wrappedOpt = WrapText(fontOpt, dialogueText, maxTextWidth);
+                var optTextSize = fontOpt.MeasureString(wrappedOpt);
 
-                _spriteBatch.DrawString(fontBody, wrappedOpt, new Vector2(textStartX, textY),
+                if (optTextSize.Y > cardRect.Height - 8)
+                {
+                    fontOpt = _fontSystem.GetFont(13);
+                    wrappedOpt = WrapText(fontOpt, dialogueText, maxTextWidth);
+                    optTextSize = fontOpt.MeasureString(wrappedOpt);
+                }
+
+                float textY = cardRect.Y + Math.Max(2, (cardRect.Height - optTextSize.Y) / 2f);
+
+                _spriteBatch.DrawString(fontOpt, wrappedOpt, new Vector2(textStartX, textY),
                     hover ? Color.White : new Color(225, 235, 250));
 
                 _dialogueOptionRects.Add((cardRect, opt));
             }
 
-            // Barra de Status Inferior
-            _spriteBatch.DrawString(fontSmall, _statusBanner, new Vector2(rightX + 2, 792), new Color(155, 170, 195));
+            // Barra de Status Inferior (Alinhada perfeitamente na base)
+            _spriteBatch.DrawString(fontSmall, _statusBanner, new Vector2(rightX + 4, 788), new Color(155, 170, 195));
         }
     }
 
@@ -1220,7 +1216,8 @@ public class InterrogationGame : Game
 
         int npcTextH = (int)fontNpc.MeasureString(wrappedNpc).Y;
         bool hasPills = !rec.IsOpeningScene;
-        int npcBoxH = npcTextH + (hasPills ? 84 : 48);
+        bool hasTwoPillRows = hasPills && (rec.ClueSynergy != ClueSynergyType.None || !string.IsNullOrEmpty(rec.UnlockedClueTitle));
+        int npcBoxH = npcTextH + (hasTwoPillRows ? 114 : (hasPills ? 84 : 48));
         h += npcBoxH;
 
         if (!string.IsNullOrEmpty(rec.SystemConclusionTitle))
@@ -1295,7 +1292,8 @@ public class InterrogationGame : Game
         Color emotionColor = GetEmotionColor(rec.NpcEmotion);
         int npcTextH = (int)fontNpc.MeasureString(wrappedNpc).Y;
         bool hasPills = !rec.IsOpeningScene;
-        int npcBoxH = npcTextH + (hasPills ? 84 : 48);
+        bool hasTwoPillRows = hasPills && (rec.ClueSynergy != ClueSynergyType.None || !string.IsNullOrEmpty(rec.UnlockedClueTitle));
+        int npcBoxH = npcTextH + (hasTwoPillRows ? 114 : (hasPills ? 84 : 48));
         var npcCard = new Rectangle(rect.X, curY, rect.Width, npcBoxH);
 
         Color npcBg = isLatest ? new Color(26, 33, 48) : new Color(21, 26, 38);
@@ -1316,33 +1314,55 @@ public class InterrogationGame : Game
 
         if (hasPills)
         {
-            int pillY = npcCard.Bottom - 34;
-            int pillX = npcCard.X + 18;
+            int pillStartX = npcCard.X + 18;
+            int maxPillRight = npcCard.Right - 18;
+            int pillY = hasTwoPillRows ? npcCard.Bottom - 64 : npcCard.Bottom - 34;
+            int curPillX = pillStartX;
 
-            pillX = DrawImpactPill(pillX, pillY, $"Confiança {FormatDelta(rec.TrustDelta)}%",
+            // Linha 1: Métricas de Confiança, Pressão e Progresso
+            curPillX = DrawImpactPill(curPillX, pillY, $"Confiança {FormatDelta(rec.TrustDelta)}%",
                 rec.TrustDelta >= 0 ? new Color(56, 189, 248) : new Color(244, 63, 94), fontSmall, opacity);
 
-            pillX = DrawImpactPill(pillX, pillY, $"Pressão {FormatDelta(rec.StressDelta)}%",
+            curPillX = DrawImpactPill(curPillX, pillY, $"Pressão {FormatDelta(rec.StressDelta)}%",
                 rec.StressDelta > 15 ? new Color(244, 63, 94) : new Color(245, 158, 11), fontSmall, opacity);
 
-            pillX = DrawImpactPill(pillX, pillY, $"Progresso {FormatDelta(rec.ProgressDelta)}%",
+            curPillX = DrawImpactPill(curPillX, pillY, $"Progresso {FormatDelta(rec.ProgressDelta)}%",
                 new Color(52, 211, 153), fontSmall, opacity);
 
-            if (rec.ClueSynergy == ClueSynergyType.Positive)
+            // Linha 2: Sinergia de Pistas e Novas Evidências Forenses
+            if (hasTwoPillRows)
             {
-                pillX = DrawImpactPill(pillX, pillY, $"★ Prova Contundente: {rec.AttachedClueTitle}",
-                    new Color(52, 211, 153), fontSmall, opacity);
-            }
-            else if (rec.ClueSynergy == ClueSynergyType.Negative)
-            {
-                pillX = DrawImpactPill(pillX, pillY, $"⚠ Evidência Desconexa: {rec.AttachedClueTitle}",
-                    new Color(248, 113, 113), fontSmall, opacity);
-            }
+                pillY += 30;
+                curPillX = pillStartX;
 
-            if (!string.IsNullOrEmpty(rec.UnlockedClueTitle))
-            {
-                DrawImpactPill(pillX, pillY, $"★ Nova Evidência: {rec.UnlockedClueTitle}",
-                    new Color(250, 204, 21), fontSmall, opacity);
+                if (rec.ClueSynergy == ClueSynergyType.Positive)
+                {
+                    string synText = $"★ Prova Contundente: {rec.AttachedClueTitle}";
+                    curPillX = DrawImpactPill(curPillX, pillY, synText,
+                        new Color(52, 211, 153), fontSmall, opacity);
+                }
+                else if (rec.ClueSynergy == ClueSynergyType.Negative)
+                {
+                    string synText = $"⚠ Evidência Desconexa: {rec.AttachedClueTitle}";
+                    curPillX = DrawImpactPill(curPillX, pillY, synText,
+                        new Color(248, 113, 113), fontSmall, opacity);
+                }
+
+                if (!string.IsNullOrEmpty(rec.UnlockedClueTitle))
+                {
+                    string unlockText = $"★ Nova Evidência: {rec.UnlockedClueTitle}";
+                    int remainW = maxPillRight - curPillX;
+                    if (remainW > 80)
+                    {
+                        var textSz = fontSmall.MeasureString(unlockText);
+                        if (textSz.X + 24 > remainW)
+                        {
+                            unlockText = TruncateText(fontSmall, unlockText, remainW - 24);
+                        }
+                        DrawImpactPill(curPillX, pillY, unlockText,
+                            new Color(250, 204, 21), fontSmall, opacity);
+                    }
+                }
             }
         }
 
@@ -1400,7 +1420,8 @@ public class InterrogationGame : Game
         string dotsStr = new('.', dots);
         var waitRect = new Rectangle(rect.X, curY, rect.Width, 60);
         DrawPanel(waitRect, new Color(24, 30, 44), new Color(139, 92, 246), 1);
-        _spriteBatch.DrawString(fontBody, $"O silêncio pesa na sala... {_state.NpcName} mede as palavras sob a luz fria{dotsStr}",
+        string waitMsg = WrapText(fontBody, $"O silêncio pesa na sala... {_state.NpcName} mede as palavras sob a luz fria{dotsStr}", waitRect.Width - 36);
+        _spriteBatch.DrawString(fontBody, waitMsg,
             new Vector2(waitRect.X + 18, waitRect.Y + 18), new Color(196, 181, 253));
     }
 
@@ -1515,14 +1536,14 @@ public class InterrogationGame : Game
 
     private void DrawMeterBar(Rectangle rect, string label, string valueText, float ratio, Color barColor, string tooltip)
     {
-        var fontLabel = _fontSystem.GetFont(16);
-        var fontSmall = _fontSystem.GetFont(14);
+        var fontLabel = _fontSystem.GetFont(15);
+        var fontTiny = _fontSystem.GetFont(12.5f);
 
         _spriteBatch.DrawString(fontLabel, label, new Vector2(rect.X, rect.Y), new Color(220, 230, 248));
         var valSize = fontLabel.MeasureString(valueText);
         _spriteBatch.DrawString(fontLabel, valueText, new Vector2(rect.Right - valSize.X, rect.Y), barColor);
 
-        var barBg = new Rectangle(rect.X, rect.Y + 22, rect.Width, 14);
+        var barBg = new Rectangle(rect.X, rect.Y + 20, rect.Width, 12);
         DrawPanel(barBg, new Color(12, 15, 22), new Color(45, 55, 78), 1);
 
         int fillWidth = (int)Math.Clamp((barBg.Width - 4) * ratio, 0, barBg.Width - 4);
@@ -1531,7 +1552,7 @@ public class InterrogationGame : Game
             DrawFilledRect(new Rectangle(barBg.X + 2, barBg.Y + 2, fillWidth, barBg.Height - 4), barColor);
         }
 
-        _spriteBatch.DrawString(fontSmall, tooltip, new Vector2(rect.X, rect.Y + 39), new Color(145, 160, 188));
+        _spriteBatch.DrawString(fontTiny, tooltip, new Vector2(rect.X, rect.Y + 36), new Color(145, 160, 188));
     }
 
     private static string FormatDelta(int value) => value >= 0 ? $"+{value}" : value.ToString();

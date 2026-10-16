@@ -236,11 +236,11 @@ public class LlamafileTurnProvider : ILlmTurnProvider, IDisposable
             try
             {
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(TimeSpan.FromSeconds(4.5));
+                cts.CancelAfter(TimeSpan.FromSeconds(5.5));
 
                 string prompt = $"""
-                Você é o Mestre de um RPG de investigação policial Noir sombrio.
-                Descreva em exatamente 2 frases atmosféricas e poéticas o ambiente pesado da sala de interrogatório com {bp.NpcName} ({bp.NpcRole}).
+                Você é o narrador de um inquérito policial Noir em 1947.
+                Descreva em exatamente 2 frases atmosféricas e poéticas o ambiente pesado e a conduta corporal de {bp.NpcName} ({bp.NpcRole}) sob a lâmpada fria da delegacia.
                 Caso investigado: {bp.Title}.
                 Responda apenas com a narração em 3ª pessoa, sem aspas e sem introdução.
                 """;
@@ -248,12 +248,25 @@ public class LlamafileTurnProvider : ILlmTurnProvider, IDisposable
                 string enrichedGm = await RequestCleanDialogueAsync(prompt, bp.NpcName, 120, cts.Token);
                 if (!string.IsNullOrWhiteSpace(enrichedGm) && enrichedGm.Length > 20 && !enrichedGm.StartsWith("{"))
                 {
-                    generated.OpeningGmNarration = enrichedGm;
+                    generated.OpeningGmNarration = enrichedGm.Trim();
+                }
+
+                string promptNpc = $"""
+                Você interpreta o suspeito {bp.NpcName} ({bp.NpcRole}) em um interrogatório policial noir em 1947.
+                Personalidade: {bp.NpcPersonality}.
+                Acusação: {bp.Context}.
+                Escreva exatamente uma frase em primeira pessoa de sua resposta defensiva inicial ao detetive na sala de interrogatório:
+                """;
+
+                string enrichedNpc = await RequestCleanDialogueAsync(promptNpc, bp.NpcName, 80, cts.Token);
+                if (!string.IsNullOrWhiteSpace(enrichedNpc) && enrichedNpc.Length > 15 && !enrichedNpc.StartsWith("{"))
+                {
+                    generated.OpeningNpcDialogue = FormatWithQuotes(enrichedNpc.Trim().Trim('\"'));
                 }
             }
             catch
             {
-                // Mantém a narração procedural pré-definida de alta qualidade sem travar o jogo
+                // Mantém a narração e o diálogo procedural de alta qualidade sem travar o jogo
             }
         }
 
