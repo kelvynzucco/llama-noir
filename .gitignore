@@ -1,0 +1,24 @@
+# Compilação e Binários do .NET
+bin/
+obj/
+
+# Logs temporários de execução
+*.log
+llama.log
+main.log
+
+# Modelos de Inteligência Artificial e Executáveis Pesados (>100MB)
+# (Estes arquivos NÃO devem ser enviados ao GitHub)
+llamafile/*.exe
+llamafile/*.gguf
+llamafile/*.bin
+llamafile/*.log
+*.gguf
+*.bin
+
+# Configurações de IDEs (Visual Studio, VS Code, Rider)
+.vs/
+.vscode/
+*.user
+*.suo
+.idea/
